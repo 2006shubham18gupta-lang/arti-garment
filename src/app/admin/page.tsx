@@ -41,10 +41,10 @@ export default function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'admin123') {
+    if (password === 'shubham18') {
       setIsAuthenticated(true);
     } else {
-      alert('Invalid password. Use: admin123');
+      alert('Invalid password. Please try again.');
     }
   };
 
@@ -133,9 +133,7 @@ export default function AdminPage() {
             >
               Login to Dashboard
             </button>
-            <p className="text-center text-xs text-white/30">
-              Default password: admin123
-            </p>
+
           </form>
         </motion.div>
       </div>
