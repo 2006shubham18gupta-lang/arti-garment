@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/StoreContext';
 import { useAuth } from '@/store/AuthContext';
-import { searchProducts } from '@/data/products';
+import { useProducts } from '@/store/ProductContext';
 import { Product } from '@/types';
 
 export default function Navbar() {
   const { state, dispatch, cartCount } = useStore();
   const { state: authState } = useAuth();
+  const { searchProducts } = useProducts();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);

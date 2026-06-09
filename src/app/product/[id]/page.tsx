@@ -4,12 +4,13 @@ import React, { useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { getProductById, products } from '@/data/products';
+import { useProducts } from '@/store/ProductContext';
 import { useStore } from '@/store/StoreContext';
 import ProductCard from '@/components/ProductCard';
 
 export default function ProductPage() {
   const params = useParams();
+  const { getProductById, allProducts } = useProducts();
   const product = getProductById(params.id as string);
   const { dispatch, isInWishlist } = useStore();
   const [selectedSize, setSelectedSize] = useState('');
@@ -34,7 +35,7 @@ export default function ProductPage() {
   }
 
   const wishlisted = isInWishlist(product.id);
-  const relatedProducts = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const relatedProducts = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!imgRef.current) return;

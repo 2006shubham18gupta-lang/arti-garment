@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { StoreProvider } from '@/store/StoreContext';
 import { AuthProvider } from '@/store/AuthContext';
+import { ProductProvider } from '@/store/ProductContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -33,11 +34,13 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <AuthProvider>
-          <StoreProvider>
-            <Navbar />
-            <main>{children}</main>
-            <Footer />
-          </StoreProvider>
+          <ProductProvider>
+            <StoreProvider>
+              <Navbar />
+              <main>{children}</main>
+              <Footer />
+            </StoreProvider>
+          </ProductProvider>
         </AuthProvider>
       </body>
     </html>

@@ -5,10 +5,11 @@ import HeroSection from '@/components/HeroSection';
 import CategorySection from '@/components/CategorySection';
 import ProductSection from '@/components/ProductSection';
 import OfferBanner from '@/components/OfferBanner';
-import { getTrendingProducts, getNewArrivals, products } from '@/data/products';
+import { useProducts } from '@/store/ProductContext';
 import { motion } from 'framer-motion';
 
 export default function Home() {
+  const { allProducts, getTrendingProducts, getNewArrivals } = useProducts();
   const trending = getTrendingProducts();
   const newArrivals = getNewArrivals();
 
@@ -92,7 +93,7 @@ export default function Home() {
         tag="🛍️ Full Catalog"
         title="All Products"
         subtitle="Browse our complete collection"
-        products={products}
+        products={allProducts}
       />
     </>
   );

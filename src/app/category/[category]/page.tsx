@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
-import { getProductsByCategory, products } from '@/data/products';
+import { useProducts } from '@/store/ProductContext';
 
 const categoryInfo: Record<string, { title: string; description: string; image: string; gradient: string }> = {
   men: {
@@ -34,6 +34,7 @@ export default function CategoryPage() {
   const info = categoryInfo[category];
   const [sortBy, setSortBy] = useState('featured');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 20000]);
+  const { getProductsByCategory } = useProducts();
 
   const categoryProducts = useMemo(() => {
     let filtered = getProductsByCategory(category);
@@ -60,7 +61,7 @@ export default function CategoryPage() {
     }
 
     return filtered;
-  }, [category, sortBy, priceRange]);
+  }, [category, sortBy, priceRange, getProductsByCategory]);
 
   if (!info) {
     return (

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { products as initialProducts } from '@/data/products';
+import { useProducts } from '@/store/ProductContext';
 import { Product } from '@/types';
 
 interface NewProduct {
@@ -33,7 +33,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'products' | 'add' | 'orders'>('products');
-  const [adminProducts, setAdminProducts] = useState<Product[]>(initialProducts);
+  const { allProducts, addProduct, deleteProduct } = useProducts();
   const [newProduct, setNewProduct] = useState<NewProduct>(emptyProduct);
   const [showSuccess, setShowSuccess] = useState(false);
   const [previewImage, setPreviewImage] = useState<string>('');
@@ -84,7 +84,7 @@ export default function AdminPage() {
         : undefined,
     };
 
-    setAdminProducts(prev => [product, ...prev]);
+    addProduct(product);
     setNewProduct(emptyProduct);
     setPreviewImage('');
     setShowSuccess(true);
@@ -93,7 +93,7 @@ export default function AdminPage() {
 
   const handleDeleteProduct = (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
-      setAdminProducts(prev => prev.filter(p => p.id !== id));
+      deleteProduct(id);
     }
   };
 
@@ -154,7 +154,7 @@ export default function AdminPage() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            Product added successfully!
+            Product added successfully! It will now show on all pages.
           </motion.div>
         )}
       </AnimatePresence>
@@ -181,10 +181,10 @@ export default function AdminPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Total Products', value: adminProducts.length, icon: '📦', color: 'from-blue-500 to-indigo-600' },
-            { label: "Men's Items", value: adminProducts.filter(p => p.category === 'men').length, icon: '👔', color: 'from-cyan-500 to-blue-600' },
-            { label: "Women's Items", value: adminProducts.filter(p => p.category === 'women').length, icon: '👗', color: 'from-pink-500 to-rose-600' },
-            { label: "Kids' Items", value: adminProducts.filter(p => p.category === 'kids').length, icon: '🧒', color: 'from-amber-500 to-orange-600' },
+            { label: 'Total Products', value: allProducts.length, icon: '📦', color: 'from-blue-500 to-indigo-600' },
+            { label: "Men's Items", value: allProducts.filter(p => p.category === 'men').length, icon: '👔', color: 'from-cyan-500 to-blue-600' },
+            { label: "Women's Items", value: allProducts.filter(p => p.category === 'women').length, icon: '👗', color: 'from-pink-500 to-rose-600' },
+            { label: "Kids' Items", value: allProducts.filter(p => p.category === 'kids').length, icon: '🧒', color: 'from-amber-500 to-orange-600' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -249,7 +249,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-surface-50">
-                    {adminProducts.map((product) => (
+                    {allProducts.map((product) => (
                       <tr key={product.id} className="hover:bg-surface-50/50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
