@@ -36,3 +36,40 @@ export interface Category {
   itemCount: number;
   gradient: string;
 }
+
+export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'rejected';
+
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  productImage: string;
+  price: number;
+  quantity: number;
+  selectedSize: string;
+  selectedColor: string;
+}
+
+export interface DeliveryAddress {
+  fullName: string;
+  phone: string;
+  alternatePhone?: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  items: OrderItem[];
+  deliveryAddress: DeliveryAddress;
+  paymentMethod: 'cod';
+  status: OrderStatus;
+  totalAmount: number;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}

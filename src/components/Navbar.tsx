@@ -479,9 +479,13 @@ function CartSidebar() {
                   <span className="text-xl font-display font-bold text-surface-900">₹{cartTotal.toLocaleString()}</span>
                 </div>
                 <p className="text-xs text-surface-400">Shipping calculated at checkout</p>
-                <button className="w-full btn-primary text-center py-4 rounded-2xl text-base">
+                <Link
+                  href="/checkout"
+                  onClick={() => dispatch({ type: 'TOGGLE_CART', payload: false })}
+                  className="block w-full btn-primary text-center py-4 rounded-2xl text-base"
+                >
                   Proceed to Checkout
-                </button>
+                </Link>
               </div>
             )}
           </motion.div>

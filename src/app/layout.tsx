@@ -3,6 +3,7 @@ import './globals.css';
 import { StoreProvider } from '@/store/StoreContext';
 import { AuthProvider } from '@/store/AuthContext';
 import { ProductProvider } from '@/store/ProductContext';
+import { OrderProvider } from '@/store/OrderContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -36,9 +37,11 @@ export default function RootLayout({
         <AuthProvider>
           <ProductProvider>
             <StoreProvider>
-              <Navbar />
-              <main>{children}</main>
-              <Footer />
+              <OrderProvider>
+                <Navbar />
+                <main>{children}</main>
+                <Footer />
+              </OrderProvider>
             </StoreProvider>
           </ProductProvider>
         </AuthProvider>

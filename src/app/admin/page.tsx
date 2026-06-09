@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts } from '@/store/ProductContext';
-import { Product } from '@/types';
+import { useOrders } from '@/store/OrderContext';
+import { Product, OrderStatus } from '@/types';
 
 interface NewProduct {
   name: string;
@@ -34,10 +35,19 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'products' | 'add' | 'orders'>('products');
   const { allProducts, addProduct, deleteProduct } = useProducts();
+  const { orders, isLoading, fetchAllOrders, updateOrderStatus } = useOrders();
   const [newProduct, setNewProduct] = useState<NewProduct>(emptyProduct);
   const [showSuccess, setShowSuccess] = useState(false);
   const [previewImage, setPreviewImage] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'orders') {
+      fetchAllOrders();
+    }
+  }, [isAuthenticated, activeTab, fetchAllOrders]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -476,23 +486,91 @@ export default function AdminPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="bg-white rounded-3xl border border-surface-100 p-8 md:p-12 text-center"
+              className="space-y-4"
             >
-              <div className="max-w-sm mx-auto">
-                <div className="text-5xl mb-4">📋</div>
-                <h3 className="text-xl font-display font-semibold text-surface-700 mb-2">
-                  Orders Dashboard
-                </h3>
-                <p className="text-surface-400 mb-6">
-                  Order management will be available once you integrate a payment gateway. 
-                  Currently products are being managed locally.
-                </p>
-                <div className="p-4 bg-primary-50 rounded-2xl">
-                  <p className="text-sm text-primary-700 font-medium">
-                    💡 Tip: Connect with Razorpay or PhonePe for easy payment processing
-                  </p>
+              {isLoading ? (
+                <div className="bg-white rounded-3xl border border-surface-100 p-12 text-center">
+                  <div className="text-4xl mb-3 animate-bounce">⏳</div>
+                  <p className="text-surface-500">Loading orders...</p>
                 </div>
-              </div>
+              ) : orders.length === 0 ? (
+                <div className="bg-white rounded-3xl border border-surface-100 p-12 text-center">
+                  <div className="text-5xl mb-4">📋</div>
+                  <h3 className="text-xl font-display font-semibold text-surface-700 mb-2">No Orders Yet</h3>
+                  <p className="text-surface-400">Jab customers order karenge, yahan dikhenge</p>
+                </div>
+              ) : (
+                orders.map((order) => (
+                  <div key={order.id} className="bg-white rounded-3xl border border-surface-100 p-5 md:p-6">
+                    <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                      <div>
+                        <p className="text-xs text-surface-400">Order ID</p>
+                        <p className="font-mono text-sm font-bold text-surface-800">{order.id.slice(0, 12)}...</p>
+                        <p className="text-xs text-surface-400 mt-1">{new Date(order.createdAt).toLocaleString('hi-IN')}</p>
+                      </div>
+                      <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+                        order.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
+                        order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
+                        order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {order.status === 'pending' ? '⏳ Pending' : order.status === 'confirmed' ? '✅ Confirmed' : order.status === 'shipped' ? '🚚 Shipped' : order.status === 'delivered' ? '📦 Delivered' : '❌ Rejected'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="bg-surface-50 rounded-2xl p-3">
+                        <p className="text-xs font-semibold text-surface-500 mb-1">👤 Customer</p>
+                        <p className="font-medium text-sm text-surface-800">{order.userName}</p>
+                        <p className="text-xs text-surface-500">{order.userEmail}</p>
+                        <p className="text-xs text-surface-500 mt-1">📞 {order.deliveryAddress.phone}</p>
+                      </div>
+                      <div className="bg-surface-50 rounded-2xl p-3">
+                        <p className="text-xs font-semibold text-surface-500 mb-1">📍 Address</p>
+                        <p className="text-xs text-surface-700">{order.deliveryAddress.address}</p>
+                        <p className="text-xs text-surface-500">{order.deliveryAddress.city}, {order.deliveryAddress.state} - {order.deliveryAddress.pincode}</p>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <p className="text-xs font-semibold text-surface-500 mb-2">🛍️ Items ({order.items.length})</p>
+                      <div className="flex flex-wrap gap-2">
+                        {order.items.map((item, i) => (
+                          <div key={i} className="flex items-center gap-2 bg-surface-50 rounded-xl px-3 py-2">
+                            <div className="w-8 h-8 rounded-lg bg-white overflow-hidden"><img src={item.productImage} alt="" className="w-full h-full object-cover" /></div>
+                            <div><p className="text-xs font-medium text-surface-700 truncate max-w-[120px]">{item.productName}</p><p className="text-[10px] text-surface-400">{item.selectedSize} · ×{item.quantity}</p></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-surface-100">
+                      <p className="text-lg font-display font-bold text-primary-700">₹{order.totalAmount.toLocaleString()} <span className="text-xs font-normal text-surface-400">(COD)</span></p>
+                      <div className="flex flex-wrap gap-2">
+                        <a href={`tel:${order.deliveryAddress.phone}`} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-100 transition-colors">📞 Call</a>
+                        {order.status === 'pending' && (
+                          <>
+                            <button onClick={() => updateOrderStatus(order.id, 'confirmed')} className="px-4 py-2 bg-green-50 text-green-600 rounded-xl text-xs font-semibold hover:bg-green-100 transition-colors">✅ Accept</button>
+                            {rejectingId === order.id ? (
+                              <div className="flex items-center gap-2"><input type="text" value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Reason" className="px-3 py-2 text-xs border rounded-xl w-32" /><button onClick={() => { updateOrderStatus(order.id, 'rejected', rejectReason); setRejectingId(null); setRejectReason(''); }} className="px-3 py-2 bg-red-500 text-white rounded-xl text-xs font-semibold">Reject</button></div>
+                            ) : (
+                              <button onClick={() => setRejectingId(order.id)} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-semibold hover:bg-red-100 transition-colors">❌ Reject</button>
+                            )}
+                          </>
+                        )}
+                        {order.status === 'confirmed' && (
+                          <button onClick={() => updateOrderStatus(order.id, 'shipped')} className="px-4 py-2 bg-purple-50 text-purple-600 rounded-xl text-xs font-semibold hover:bg-purple-100 transition-colors">🚚 Ship</button>
+                        )}
+                        {order.status === 'shipped' && (
+                          <button onClick={() => updateOrderStatus(order.id, 'delivered')} className="px-4 py-2 bg-green-50 text-green-600 rounded-xl text-xs font-semibold hover:bg-green-100 transition-colors">📦 Delivered</button>
+                        )}
+                      </div>
+                    </div>
+                    {order.rejectionReason && <p className="text-xs text-red-500 mt-2">Rejection reason: {order.rejectionReason}</p>}
+                  </div>
+                ))
+              )}
             </motion.div>
           )}
         </AnimatePresence>
