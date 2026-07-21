@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts } from '@/store/ProductContext';
 import { useOrders } from '@/store/OrderContext';
@@ -38,10 +38,7 @@ export default function AdminPage() {
   const { orders, isLoading, fetchAllOrders, updateOrderStatus } = useOrders();
   const [newProduct, setNewProduct] = useState<NewProduct>(emptyProduct);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string>('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
@@ -60,16 +57,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Store the File object for Firebase Storage upload
-      setImageFile(file);
-      // Create a local preview URL (does NOT get stored in Firestore)
-      const previewUrl = URL.createObjectURL(file);
-      setPreviewImage(previewUrl);
-    }
-  };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +73,7 @@ export default function AdminPage() {
         subcategory: newProduct.subcategory,
         sizes: newProduct.sizes.split(',').map(s => s.trim()),
         colors: newProduct.colors.split(',').map(c => c.trim()),
-        images: ['/images/products/kurta-navy.png'], // Placeholder; real URL set by ProductContext
+        images: [newProduct.imageUrl || '/images/products/kurta-navy.png'],
         description: newProduct.description,
         rating: 4.0,
         reviews: 0,
@@ -97,16 +84,14 @@ export default function AdminPage() {
           : undefined,
       };
 
-      // Pass the image file to ProductContext which uploads to Firebase Storage
-      await addProduct(product, imageFile || undefined);
+      // Pass the image URL directly to ProductContext (no Storage upload needed)
+      await addProduct(product, newProduct.imageUrl || undefined);
       setNewProduct(emptyProduct);
-      setPreviewImage('');
-      setImageFile(null);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('[Admin] Failed to add product:', error);
-      alert('Failed to add product. Please check your internet connection and try again.');
+      alert('Product add karne mein problem hui. Internet connection check karein aur dobara try karein.');
     } finally {
       setIsSubmitting(false);
     }
@@ -431,31 +416,22 @@ export default function AdminPage() {
                     />
                   </div>
 
-                  {/* Image Upload */}
+                  {/* Image URL */}
                   <div>
-                    <label className="block text-sm font-medium text-surface-700 mb-2">Product Image</label>
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full px-4 py-8 bg-surface-50 border-2 border-dashed border-surface-200 rounded-xl text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 transition-all"
-                    >
-                      {previewImage ? (
-                        <img src={previewImage} alt="Preview" className="w-20 h-20 object-cover rounded-xl mx-auto" />
-                      ) : (
-                        <>
-                          <svg className="w-8 h-8 text-surface-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <p className="text-sm text-surface-400">Click to upload image</p>
-                        </>
-                      )}
-                    </div>
+                    <label className="block text-sm font-medium text-surface-700 mb-2">Product Image URL</label>
                     <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
+                      type="url"
+                      value={newProduct.imageUrl}
+                      onChange={(e) => {
+                        setNewProduct(prev => ({ ...prev, imageUrl: e.target.value }));
+                      }}
+                      placeholder="https://example.com/image.jpg"
+                      className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all"
                     />
+                    {newProduct.imageUrl && (
+                      <img src={newProduct.imageUrl} alt="Preview" className="w-20 h-20 object-cover rounded-xl mt-2" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                    )}
+                    <p className="text-xs text-surface-400 mt-1">💡 ImgBB.com pe free upload karein aur URL yahan paste karein</p>
                   </div>
                 </div>
 
@@ -478,11 +454,11 @@ export default function AdminPage() {
                     disabled={isSubmitting}
                     className={`btn-primary py-3.5 px-8 rounded-xl text-base ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
-                    {isSubmitting ? '⏳ Uploading...' : 'Add Product'}
+                    {isSubmitting ? '⏳ Saving...' : 'Add Product'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setNewProduct(emptyProduct); setPreviewImage(''); setImageFile(null); }}
+                    onClick={() => setNewProduct(emptyProduct)}
                     className="px-6 py-3 bg-surface-100 text-surface-600 rounded-xl hover:bg-surface-200 transition-colors font-medium"
                   >
                     Clear Form

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { Product } from '@/types';
 import { products as defaultProducts } from '@/data/products';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import {
   collection,
   addDoc,
@@ -12,17 +12,12 @@ import {
   query,
   onSnapshot,
 } from 'firebase/firestore';
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from 'firebase/storage';
 
 const FIRESTORE_COLLECTION = 'products';
 
 interface ProductContextType {
   allProducts: Product[];
-  addProduct: (product: Product, imageFile?: File) => Promise<void>;
+  addProduct: (product: Product, imageUrl?: string) => Promise<void>;
   deleteProduct: (id: string) => void;
   getProductById: (id: string) => Product | undefined;
   getProductsByCategory: (category: string) => Product[];
@@ -76,47 +71,28 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   // Merge: admin-added products first, then default products
   const allProducts = [...adminProducts, ...defaultProducts];
 
-  const addProduct = useCallback(async (product: Product, imageFile?: File) => {
-    let imageUrl = product.images[0] || '/images/products/kurta-navy.png';
+  const addProduct = useCallback(async (product: Product, imageUrl?: string) => {
+    // Use provided imageUrl, or fall back to product's existing image, or default
+    const finalImageUrl = imageUrl && imageUrl.trim()
+      ? imageUrl.trim()
+      : (product.images[0] && !product.images[0].startsWith('data:'))
+        ? product.images[0]
+        : '/images/products/kurta-navy.png';
 
-    // Upload image to Firebase Storage if a file is provided
-    if (imageFile) {
-      try {
-        const timestamp = Date.now();
-        const safeName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const storageRef = ref(storage, `products/${timestamp}-${safeName}`);
-        console.log('[ProductContext] Uploading image to Firebase Storage...');
-        const uploadResult = await uploadBytes(storageRef, imageFile);
-        imageUrl = await getDownloadURL(uploadResult.ref);
-        console.log('[ProductContext] Image uploaded successfully:', imageUrl);
-      } catch (uploadError) {
-        console.error('[ProductContext] Image upload to Firebase Storage failed:', uploadError);
-        // Fall back to default image — do NOT store base64 in Firestore
-        imageUrl = '/images/products/kurta-navy.png';
-      }
-    }
-
-    // Save to Firestore (this will trigger onSnapshot for ALL connected devices)
+    // Save to Firestore (triggers onSnapshot on ALL devices instantly)
     try {
       const productData = {
         ...product,
-        images: [imageUrl],
+        images: [finalImageUrl],
         originalId: product.id,
         createdAt: new Date().toISOString(),
       };
 
-      // Remove any base64 image data that may have been accidentally set
-      if (productData.images[0] && productData.images[0].startsWith('data:')) {
-        console.warn('[ProductContext] Blocked base64 image from being saved to Firestore. Using default image.');
-        productData.images = ['/images/products/kurta-navy.png'];
-      }
-
       const docRef = await addDoc(collection(db, FIRESTORE_COLLECTION), productData);
       console.log(`[ProductContext] Product saved to Firestore with ID: ${docRef.id}`);
-      // No need to manually update state — onSnapshot will handle it automatically
     } catch (e) {
       console.error('[ProductContext] Failed to save product to Firestore:', e);
-      throw e; // Re-throw so the caller knows it failed
+      throw e;
     }
   }, []);
 
