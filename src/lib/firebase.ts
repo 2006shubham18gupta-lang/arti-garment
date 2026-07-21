@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // 🔥 Firebase Configuration
 // Replace these values with your own from Firebase Console
@@ -18,5 +19,8 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 
 // Firestore Database
 export const db = getFirestore(app);
+
+// Firebase Storage (for product images)
+export const storage = getStorage(app);
 
 export default app;

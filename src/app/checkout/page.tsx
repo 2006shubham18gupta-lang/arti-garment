@@ -18,6 +18,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1); // 1: Address, 2: Review, 3: Success
   const [isPlacing, setIsPlacing] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [orderError, setOrderError] = useState('');
   const [address, setAddress] = useState<DeliveryAddress>({
     fullName: authState.user?.fullName || '',
     phone: authState.user?.phone || '',
@@ -78,6 +79,7 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     setIsPlacing(true);
+    setOrderError('');
     try {
       const orderItems: OrderItem[] = state.cart.map(item => ({
         productId: item.product.id,
@@ -101,8 +103,10 @@ export default function CheckoutPage() {
       setOrderId(id);
       dispatch({ type: 'CLEAR_CART' });
       setStep(3);
-    } catch (error) {
-      alert('Order place karne mein problem hui. Please try again.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Checkout error:', errorMessage);
+      setOrderError(errorMessage);
     } finally {
       setIsPlacing(false);
     }
@@ -410,6 +414,19 @@ export default function CheckoutPage() {
                   <p className="text-xs text-surface-400 text-center mt-3">
                     Order confirm hone ke baad hum aapko call karenge 📞
                   </p>
+
+                  {orderError && (
+                    <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-2xl">
+                      <p className="text-sm font-semibold text-red-700 mb-1">❌ Order Failed</p>
+                      <p className="text-xs text-red-600 whitespace-pre-wrap">{orderError}</p>
+                      <button
+                        onClick={() => setOrderError('')}
+                        className="mt-2 text-xs text-red-500 underline hover:text-red-700"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

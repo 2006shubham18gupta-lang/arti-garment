@@ -1,6 +1,16 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
+  updateDoc,
+  query,
+  where,
+} from 'firebase/firestore';
 
 export interface UserAddress {
   fullName: string;
@@ -15,6 +25,7 @@ export interface UserAddress {
 
 export interface User {
   id: string;
+  firestoreId?: string; // Firestore document ID
   fullName: string;
   email: string;
   phone: string;
@@ -108,10 +119,12 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
+const USERS_COLLECTION = 'users';
+
 const AuthContext = createContext<{
   state: AuthState;
-  login: (email: string, password: string) => { success: boolean; error?: string };
-  signup: (userData: Omit<User, 'id' | 'createdAt'>) => { success: boolean; error?: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (userData: Omit<User, 'id' | 'createdAt'>) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
   updateAddress: (address: UserAddress) => void;
@@ -120,83 +133,203 @@ const AuthContext = createContext<{
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Load from localStorage on mount
+  // Load all users from Firestore on mount + check for saved login session
   useEffect(() => {
-    try {
-      const savedUsers = localStorage.getItem('arti-users');
-      const savedCurrentUser = localStorage.getItem('arti-current-user');
-      const allUsers: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-      const currentUser: User | null = savedCurrentUser ? JSON.parse(savedCurrentUser) : null;
-      dispatch({
-        type: 'LOAD_STATE',
-        payload: { user: currentUser, allUsers },
-      });
-    } catch {
-      dispatch({ type: 'SET_LOADING', payload: false });
-    }
+    const loadUsers = async () => {
+      try {
+        // Load all users from Firestore
+        const snapshot = await getDocs(collection(db, USERS_COLLECTION));
+        const firestoreUsers: User[] = snapshot.docs.map(docSnap => ({
+          ...docSnap.data(),
+          firestoreId: docSnap.id,
+        })) as User[];
+
+        // Check if there's a saved login session in localStorage (session only, not user data)
+        let currentUser: User | null = null;
+        try {
+          const savedSession = localStorage.getItem('arti-session');
+          if (savedSession) {
+            const sessionData = JSON.parse(savedSession);
+            // Find the user in Firestore data to get latest info
+            currentUser = firestoreUsers.find(u => u.id === sessionData.userId) || null;
+          }
+        } catch {
+          // Session read failed, user just won't be logged in
+        }
+
+        // Migrate old localStorage users to Firestore (one-time)
+        try {
+          const oldUsers = localStorage.getItem('arti-users');
+          if (oldUsers) {
+            const localUsers: User[] = JSON.parse(oldUsers);
+            for (const localUser of localUsers) {
+              // Check if user already exists in Firestore
+              const exists = firestoreUsers.some(
+                u => u.email.toLowerCase() === localUser.email.toLowerCase()
+              );
+              if (!exists) {
+                const { firestoreId, ...userData } = localUser as User & { firestoreId?: string };
+                await addDoc(collection(db, USERS_COLLECTION), userData);
+                firestoreUsers.push(localUser);
+              }
+            }
+            // Clear old localStorage data
+            localStorage.removeItem('arti-users');
+            localStorage.removeItem('arti-current-user');
+          }
+        } catch {
+          // Migration failed silently
+        }
+
+        dispatch({
+          type: 'LOAD_STATE',
+          payload: { user: currentUser, allUsers: firestoreUsers },
+        });
+      } catch (error) {
+        console.error('Failed to load users from Firestore:', error);
+        // Fallback to localStorage if Firestore fails
+        try {
+          const savedUsers = localStorage.getItem('arti-users');
+          const savedCurrentUser = localStorage.getItem('arti-current-user');
+          const allUsers: User[] = savedUsers ? JSON.parse(savedUsers) : [];
+          const currentUser: User | null = savedCurrentUser ? JSON.parse(savedCurrentUser) : null;
+          dispatch({
+            type: 'LOAD_STATE',
+            payload: { user: currentUser, allUsers },
+          });
+        } catch {
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
+      }
+    };
+    loadUsers();
   }, []);
 
-  // Save to localStorage on changes
+  // Save session to localStorage (only user ID, not full data)
   useEffect(() => {
     if (state.isLoading) return;
     try {
-      localStorage.setItem('arti-users', JSON.stringify(state.allUsers));
       if (state.user) {
-        localStorage.setItem('arti-current-user', JSON.stringify(state.user));
+        localStorage.setItem('arti-session', JSON.stringify({ userId: state.user.id }));
       } else {
-        localStorage.removeItem('arti-current-user');
+        localStorage.removeItem('arti-session');
       }
     } catch (e) {
-      console.error('Failed to save auth state:', e);
+      console.error('Failed to save session:', e);
     }
-  }, [state.allUsers, state.user, state.isLoading]);
+  }, [state.user, state.isLoading]);
 
-  const login = (email: string, password: string) => {
-    const user = state.allUsers.find(
-      u => (u.email.toLowerCase() === email.toLowerCase() || u.phone === email) && u.password === password
-    );
-    if (user) {
-      dispatch({ type: 'LOGIN', payload: user });
-      return { success: true };
+  const login = async (email: string, password: string) => {
+    try {
+      // Fetch latest users from Firestore
+      const snapshot = await getDocs(collection(db, USERS_COLLECTION));
+      const firestoreUsers: User[] = snapshot.docs.map(docSnap => ({
+        ...docSnap.data(),
+        firestoreId: docSnap.id,
+      })) as User[];
+
+      const user = firestoreUsers.find(
+        u => (u.email.toLowerCase() === email.toLowerCase() || u.phone === email) && u.password === password
+      );
+
+      if (user) {
+        dispatch({ type: 'LOGIN', payload: user });
+        // Update allUsers with latest data
+        dispatch({ type: 'LOAD_STATE', payload: { user, allUsers: firestoreUsers } });
+        return { success: true };
+      }
+      return { success: false, error: 'Invalid email/phone or password. Please try again.' };
+    } catch (error) {
+      console.error('Login error:', error);
+      // Fallback to local state
+      const user = state.allUsers.find(
+        u => (u.email.toLowerCase() === email.toLowerCase() || u.phone === email) && u.password === password
+      );
+      if (user) {
+        dispatch({ type: 'LOGIN', payload: user });
+        return { success: true };
+      }
+      return { success: false, error: 'Login failed. Please check your connection and try again.' };
     }
-    return { success: false, error: 'Invalid email/phone or password. Please try again.' };
   };
 
-  const signup = (userData: Omit<User, 'id' | 'createdAt'>) => {
-    // Check if email already exists
-    const emailExists = state.allUsers.some(
-      u => u.email.toLowerCase() === userData.email.toLowerCase()
-    );
-    if (emailExists) {
-      return { success: false, error: 'This email is already registered. Please log in.' };
+  const signup = async (userData: Omit<User, 'id' | 'createdAt'>) => {
+    try {
+      // Check in Firestore if email already exists
+      const snapshot = await getDocs(collection(db, USERS_COLLECTION));
+      const firestoreUsers: User[] = snapshot.docs.map(docSnap => ({
+        ...docSnap.data(),
+        firestoreId: docSnap.id,
+      })) as User[];
+
+      const emailExists = firestoreUsers.some(
+        u => u.email.toLowerCase() === userData.email.toLowerCase()
+      );
+      if (emailExists) {
+        return { success: false, error: 'This email is already registered. Please log in.' };
+      }
+
+      const phoneExists = firestoreUsers.some(u => u.phone === userData.phone);
+      if (phoneExists) {
+        return { success: false, error: 'This phone number is already registered. Please log in.' };
+      }
+
+      const newUser: User = {
+        ...userData,
+        id: `user-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Save to Firestore
+      const docRef = await addDoc(collection(db, USERS_COLLECTION), {
+        ...newUser,
+      });
+
+      newUser.firestoreId = docRef.id;
+
+      dispatch({ type: 'SIGNUP', payload: newUser });
+      return { success: true };
+    } catch (error) {
+      console.error('Signup error:', error);
+      return { success: false, error: 'Signup failed. Please check your connection and try again.' };
     }
-
-    // Check if phone already exists
-    const phoneExists = state.allUsers.some(u => u.phone === userData.phone);
-    if (phoneExists) {
-      return { success: false, error: 'This phone number is already registered. Please log in.' };
-    }
-
-    const newUser: User = {
-      ...userData,
-      id: `user-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-
-    dispatch({ type: 'SIGNUP', payload: newUser });
-    return { success: true };
   };
 
   const logout = () => {
     dispatch({ type: 'LOGOUT' });
+    try {
+      localStorage.removeItem('arti-session');
+    } catch {
+      // Ignore
+    }
   };
 
-  const updateProfile = (data: Partial<User>) => {
+  const updateProfile = async (data: Partial<User>) => {
     dispatch({ type: 'UPDATE_PROFILE', payload: data });
+
+    // Update in Firestore
+    if (state.user?.firestoreId) {
+      try {
+        const userRef = doc(db, USERS_COLLECTION, state.user.firestoreId);
+        await updateDoc(userRef, { ...data });
+      } catch (e) {
+        console.error('Failed to update profile in Firestore:', e);
+      }
+    }
   };
 
-  const updateAddress = (address: UserAddress) => {
+  const updateAddress = async (address: UserAddress) => {
     dispatch({ type: 'UPDATE_ADDRESS', payload: address });
+
+    // Update in Firestore
+    if (state.user?.firestoreId) {
+      try {
+        const userRef = doc(db, USERS_COLLECTION, state.user.firestoreId);
+        await updateDoc(userRef, { address });
+      } catch (e) {
+        console.error('Failed to update address in Firestore:', e);
+      }
+    }
   };
 
   return (

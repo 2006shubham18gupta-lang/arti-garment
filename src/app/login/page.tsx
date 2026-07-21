@@ -20,13 +20,16 @@ export default function LoginPage() {
     setError('');
     setIsLoading(true);
 
-    await new Promise(res => setTimeout(res, 800));
-
-    const result = login(emailOrPhone.trim(), password);
-    if (result.success) {
-      router.push('/');
-    } else {
-      setError('Invalid email/phone or password. Please try again.');
+    try {
+      const result = await login(emailOrPhone.trim(), password);
+      if (result.success) {
+        router.push('/');
+      } else {
+        setError(result.error || 'Invalid email/phone or password. Please try again.');
+        setIsLoading(false);
+      }
+    } catch {
+      setError('Login failed. Please check your connection and try again.');
       setIsLoading(false);
     }
   };

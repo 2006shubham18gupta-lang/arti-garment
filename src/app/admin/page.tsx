@@ -34,11 +34,13 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'products' | 'add' | 'orders'>('products');
-  const { allProducts, addProduct, deleteProduct } = useProducts();
+  const { allProducts, addProduct, deleteProduct, isLoading: productsLoading } = useProducts();
   const { orders, isLoading, fetchAllOrders, updateOrderStatus } = useOrders();
   const [newProduct, setNewProduct] = useState<NewProduct>(emptyProduct);
   const [showSuccess, setShowSuccess] = useState(false);
   const [previewImage, setPreviewImage] = useState<string>('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -61,44 +63,53 @@ export default function AdminPage() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setPreviewImage(result);
-        setNewProduct(prev => ({ ...prev, imageUrl: result }));
-      };
-      reader.readAsDataURL(file);
+      // Store the File object for Firebase Storage upload
+      setImageFile(file);
+      // Create a local preview URL (does NOT get stored in Firestore)
+      const previewUrl = URL.createObjectURL(file);
+      setPreviewImage(previewUrl);
     }
   };
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     
-    const product: Product = {
-      id: `prod-${Date.now()}`,
-      name: newProduct.name,
-      price: Number(newProduct.price),
-      originalPrice: newProduct.originalPrice ? Number(newProduct.originalPrice) : undefined,
-      category: newProduct.category,
-      subcategory: newProduct.subcategory,
-      sizes: newProduct.sizes.split(',').map(s => s.trim()),
-      colors: newProduct.colors.split(',').map(c => c.trim()),
-      images: [newProduct.imageUrl || '/images/products/kurta-navy.png'],
-      description: newProduct.description,
-      rating: 4.0,
-      reviews: 0,
-      isNew: true,
-      inStock: true,
-      discount: newProduct.originalPrice
-        ? Math.round((1 - Number(newProduct.price) / Number(newProduct.originalPrice)) * 100)
-        : undefined,
-    };
+    try {
+      const product: Product = {
+        id: `prod-${Date.now()}`,
+        name: newProduct.name,
+        price: Number(newProduct.price),
+        originalPrice: newProduct.originalPrice ? Number(newProduct.originalPrice) : undefined,
+        category: newProduct.category,
+        subcategory: newProduct.subcategory,
+        sizes: newProduct.sizes.split(',').map(s => s.trim()),
+        colors: newProduct.colors.split(',').map(c => c.trim()),
+        images: ['/images/products/kurta-navy.png'], // Placeholder; real URL set by ProductContext
+        description: newProduct.description,
+        rating: 4.0,
+        reviews: 0,
+        isNew: true,
+        inStock: true,
+        discount: newProduct.originalPrice
+          ? Math.round((1 - Number(newProduct.price) / Number(newProduct.originalPrice)) * 100)
+          : undefined,
+      };
 
-    addProduct(product);
-    setNewProduct(emptyProduct);
-    setPreviewImage('');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+      // Pass the image file to ProductContext which uploads to Firebase Storage
+      await addProduct(product, imageFile || undefined);
+      setNewProduct(emptyProduct);
+      setPreviewImage('');
+      setImageFile(null);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error('[Admin] Failed to add product:', error);
+      alert('Failed to add product. Please check your internet connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeleteProduct = (id: string) => {
@@ -464,13 +475,14 @@ export default function AdminPage() {
                 <div className="flex gap-3 pt-2">
                   <button
                     type="submit"
-                    className="btn-primary py-3.5 px-8 rounded-xl text-base"
+                    disabled={isSubmitting}
+                    className={`btn-primary py-3.5 px-8 rounded-xl text-base ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
-                    Add Product
+                    {isSubmitting ? '⏳ Uploading...' : 'Add Product'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setNewProduct(emptyProduct); setPreviewImage(''); }}
+                    onClick={() => { setNewProduct(emptyProduct); setPreviewImage(''); setImageFile(null); }}
                     className="px-6 py-3 bg-surface-100 text-surface-600 rounded-xl hover:bg-surface-200 transition-colors font-medium"
                   >
                     Clear Form

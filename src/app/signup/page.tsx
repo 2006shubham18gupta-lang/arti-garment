@@ -56,7 +56,7 @@ export default function SignupPage() {
     setStep(2);
   };
 
-  const handleStep2 = (e: React.FormEvent) => {
+  const handleStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -73,28 +73,32 @@ export default function SignupPage() {
       return;
     }
 
-    const result = signup({
-      fullName: fullName.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
-      password,
-      address: {
+    try {
+      const result = await signup({
         fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
         phone: phone.trim(),
-        addressLine1: addressLine1.trim(),
-        addressLine2: addressLine2.trim(),
-        city: city.trim(),
-        state: state_.trim(),
-        pincode: pincode.trim(),
-        landmark: landmark.trim(),
-      },
-    });
+        password,
+        address: {
+          fullName: fullName.trim(),
+          phone: phone.trim(),
+          addressLine1: addressLine1.trim(),
+          addressLine2: addressLine2.trim(),
+          city: city.trim(),
+          state: state_.trim(),
+          pincode: pincode.trim(),
+          landmark: landmark.trim(),
+        },
+      });
 
-    if (result.success) {
-      setStep(3);
-      setTimeout(() => router.push('/'), 2500);
-    } else {
-      setError(result.error || 'Registration failed. Please try again.');
+      if (result.success) {
+        setStep(3);
+        setTimeout(() => router.push('/'), 2500);
+      } else {
+        setError(result.error || 'Registration failed. Please try again.');
+      }
+    } catch {
+      setError('Signup failed. Please check your connection and try again.');
     }
   };
 

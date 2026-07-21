@@ -1,7 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef, ReactNode } from 'react';
 import { Product, CartItem, WishlistItem } from '@/types';
+import { db } from '@/lib/firebase';
+import {
+  doc,
+  getDoc,
+  setDoc,
+} from 'firebase/firestore';
 
 interface StoreState {
   cart: CartItem[];
@@ -95,6 +101,21 @@ function storeReducer(state: StoreState, action: Action): StoreState {
   }
 }
 
+// Helper: get userId from session
+function getSessionUserId(): string | null {
+  try {
+    const session = localStorage.getItem('arti-session');
+    if (session) {
+      return JSON.parse(session).userId || null;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+const CART_COLLECTION = 'user_carts';
+
 const StoreContext = createContext<{
   state: StoreState;
   dispatch: React.Dispatch<Action>;
@@ -105,34 +126,92 @@ const StoreContext = createContext<{
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(storeReducer, initialState);
+  const isLoaded = useRef(false);
+  const saveTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Load from localStorage
+  // Load cart/wishlist from Firestore (user-specific) or localStorage (guest)
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem('arti-cart');
-      const savedWishlist = localStorage.getItem('arti-wishlist');
-      if (savedCart || savedWishlist) {
-        dispatch({
-          type: 'LOAD_STATE',
-          payload: {
-            ...(savedCart ? { cart: JSON.parse(savedCart) } : {}),
-            ...(savedWishlist ? { wishlist: JSON.parse(savedWishlist) } : {}),
-          },
-        });
+    const loadStore = async () => {
+      const userId = getSessionUserId();
+
+      if (userId) {
+        // Logged-in user: load from Firestore
+        try {
+          const cartDoc = await getDoc(doc(db, CART_COLLECTION, userId));
+          if (cartDoc.exists()) {
+            const data = cartDoc.data();
+            dispatch({
+              type: 'LOAD_STATE',
+              payload: {
+                ...(data.cart ? { cart: data.cart } : {}),
+                ...(data.wishlist ? { wishlist: data.wishlist } : {}),
+              },
+            });
+            isLoaded.current = true;
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to load cart from Firestore:', e);
+        }
       }
-    } catch (e) {
-      console.error('Failed to load store state:', e);
-    }
+
+      // Guest or Firestore failed: load from localStorage
+      try {
+        const savedCart = localStorage.getItem('arti-cart');
+        const savedWishlist = localStorage.getItem('arti-wishlist');
+        if (savedCart || savedWishlist) {
+          dispatch({
+            type: 'LOAD_STATE',
+            payload: {
+              ...(savedCart ? { cart: JSON.parse(savedCart) } : {}),
+              ...(savedWishlist ? { wishlist: JSON.parse(savedWishlist) } : {}),
+            },
+          });
+        }
+      } catch (e) {
+        console.error('Failed to load store state:', e);
+      }
+      isLoaded.current = true;
+    };
+    loadStore();
   }, []);
 
-  // Save to localStorage
+  // Save cart/wishlist to Firestore (user-specific) + localStorage (fallback)
   useEffect(() => {
+    if (!isLoaded.current) return;
+
+    // Always save to localStorage as fallback
     try {
       localStorage.setItem('arti-cart', JSON.stringify(state.cart));
       localStorage.setItem('arti-wishlist', JSON.stringify(state.wishlist));
     } catch (e) {
-      console.error('Failed to save store state:', e);
+      console.error('Failed to save store state to localStorage:', e);
     }
+
+    // Debounced save to Firestore for logged-in users
+    if (saveTimeout.current) {
+      clearTimeout(saveTimeout.current);
+    }
+    saveTimeout.current = setTimeout(async () => {
+      const userId = getSessionUserId();
+      if (userId) {
+        try {
+          await setDoc(doc(db, CART_COLLECTION, userId), {
+            cart: state.cart,
+            wishlist: state.wishlist,
+            updatedAt: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.error('Failed to save cart to Firestore:', e);
+        }
+      }
+    }, 1000); // 1 second debounce to avoid too many writes
+
+    return () => {
+      if (saveTimeout.current) {
+        clearTimeout(saveTimeout.current);
+      }
+    };
   }, [state.cart, state.wishlist]);
 
   const cartTotal = state.cart.reduce(
