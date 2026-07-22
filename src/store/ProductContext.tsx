@@ -11,6 +11,7 @@ import {
   doc,
   query,
   onSnapshot,
+  updateDoc,
 } from 'firebase/firestore';
 
 const FIRESTORE_COLLECTION = 'products';
@@ -18,6 +19,7 @@ const FIRESTORE_COLLECTION = 'products';
 interface ProductContextType {
   allProducts: Product[];
   addProduct: (product: Product, imageUrl?: string) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => void;
   getProductById: (id: string) => Product | undefined;
   getProductsByCategory: (category: string) => Product[];
@@ -130,6 +132,29 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     }
   }, [adminProducts]);
 
+  const updateProduct = useCallback(async (id: string, updates: Partial<Product>) => {
+    const productToUpdate = adminProducts.find(p => p.id === id);
+    if (!productToUpdate) {
+      console.warn(`[ProductContext] Product not found for update: ${id}`);
+      return;
+    }
+    const firestoreId = (productToUpdate as Product & { firestoreId?: string }).firestoreId;
+    if (!firestoreId) {
+      console.warn('[ProductContext] No firestoreId for update, skipping');
+      return;
+    }
+    try {
+      await updateDoc(doc(db, FIRESTORE_COLLECTION, firestoreId), {
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      });
+      console.log(`[ProductContext] Product updated in Firestore: ${firestoreId}`);
+    } catch (e) {
+      console.error('[ProductContext] Failed to update product in Firestore:', e);
+      throw e;
+    }
+  }, [adminProducts]);
+
   const getProductById = useCallback((id: string): Product | undefined => {
     return allProducts.find(p => p.id === id);
   }, [allProducts]);
@@ -162,6 +187,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       value={{
         allProducts,
         addProduct,
+        updateProduct,
         deleteProduct,
         getProductById,
         getProductsByCategory,

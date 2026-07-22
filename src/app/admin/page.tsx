@@ -34,13 +34,18 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'products' | 'add' | 'orders'>('products');
-  const { allProducts, addProduct, deleteProduct, isLoading: productsLoading } = useProducts();
+  const { allProducts, addProduct, updateProduct, deleteProduct, isLoading: productsLoading } = useProducts();
   const { orders, isLoading, fetchAllOrders, updateOrderStatus } = useOrders();
   const [newProduct, setNewProduct] = useState<NewProduct>(emptyProduct);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  // Edit state
+  const [editingProduct, setEditingProduct] = useState<(Product & { firestoreId?: string }) | null>(null);
+  const [editForm, setEditForm] = useState<NewProduct>(emptyProduct);
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated && activeTab === 'orders') {
@@ -100,6 +105,60 @@ export default function AdminPage() {
   const handleDeleteProduct = (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
       deleteProduct(id);
+    }
+  };
+
+  // Open edit modal with product data pre-filled
+  const handleEditOpen = (product: Product) => {
+    setEditingProduct(product as Product & { firestoreId?: string });
+    setEditForm({
+      name: product.name,
+      price: String(product.price),
+      originalPrice: product.originalPrice ? String(product.originalPrice) : '',
+      category: product.category,
+      subcategory: product.subcategory,
+      sizes: product.sizes.join(', '),
+      colors: product.colors.join(', '),
+      description: product.description,
+      imageUrl: product.images[0] || '',
+    });
+  };
+
+  // Save edits to Firestore
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct || isEditSubmitting) return;
+    setIsEditSubmitting(true);
+    try {
+      const updates: Partial<Product> = {
+        name: editForm.name,
+        price: Number(editForm.price),
+        originalPrice: editForm.originalPrice ? Number(editForm.originalPrice) : undefined,
+        category: editForm.category,
+        subcategory: editForm.subcategory,
+        sizes: editForm.sizes.split(',').map(s => s.trim()),
+        colors: editForm.colors.split(',').map(c => c.trim()),
+        description: editForm.description,
+        images: [editForm.imageUrl || '/images/products/kurta-navy.png'],
+        discount: editForm.originalPrice
+          ? Math.round((1 - Number(editForm.price) / Number(editForm.originalPrice)) * 100)
+          : undefined,
+      };
+      await updateProduct(editingProduct.id, updates);
+      setEditingProduct(null);
+    } catch {
+      alert('Update karne mein problem hui. Dobara try karein.');
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  };
+
+  // Toggle In Stock / Out of Stock
+  const handleToggleStock = async (product: Product) => {
+    try {
+      await updateProduct(product.id, { inStock: !product.inStock });
+    } catch {
+      alert('Stock update karne mein problem hui.');
     }
   };
 
@@ -288,22 +347,42 @@ export default function AdminPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            product.inStock ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                          }`}>
-                            {product.inStock ? 'In Stock' : 'Out of Stock'}
-                          </span>
+                          {/* Stock Toggle Button */}
+                          <button
+                            onClick={() => handleToggleStock(product)}
+                            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 cursor-pointer hover:scale-105 ${
+                              product.inStock
+                                ? 'bg-green-50 text-green-600 hover:bg-green-100'
+                                : 'bg-red-50 text-red-600 hover:bg-red-100'
+                            }`}
+                            title="Click to toggle stock"
+                          >
+                            {product.inStock ? '✅ In Stock' : '❌ Out of Stock'}
+                          </button>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="p-2 rounded-lg hover:bg-red-50 text-surface-400 hover:text-red-500 transition-colors"
-                            title="Delete"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Edit Button */}
+                            <button
+                              onClick={() => handleEditOpen(product)}
+                              className="p-2 rounded-lg hover:bg-blue-50 text-surface-400 hover:text-blue-500 transition-colors"
+                              title="Edit"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            {/* Delete Button */}
+                            <button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="p-2 rounded-lg hover:bg-red-50 text-surface-400 hover:text-red-500 transition-colors"
+                              title="Delete"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -563,6 +642,141 @@ export default function AdminPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* ─── Edit Product Modal ─── */}
+      <AnimatePresence>
+        {editingProduct && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setEditingProduct(null); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-surface-100">
+                <div>
+                  <h2 className="text-xl font-display font-bold text-surface-900">✏️ Edit Product</h2>
+                  <p className="text-sm text-surface-400 mt-0.5">{editingProduct.name}</p>
+                </div>
+                <button
+                  onClick={() => setEditingProduct(null)}
+                  className="p-2 rounded-xl hover:bg-surface-100 text-surface-400 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Form */}
+              <form onSubmit={handleEditSave} className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Name */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-surface-700 mb-1">Product Name *</label>
+                    <input type="text" value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                      className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all" required />
+                  </div>
+                  {/* Category */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1">Category *</label>
+                    <select value={editForm.category} onChange={e => setEditForm(p => ({ ...p, category: e.target.value as 'men' | 'women' | 'kids' }))}
+                      className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 transition-all" required>
+                      <option value="men">Men</option>
+                      <option value="women">Women</option>
+                      <option value="kids">Kids</option>
+                    </select>
+                  </div>
+                  {/* Subcategory */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1">Subcategory *</label>
+                    <input type="text" value={editForm.subcategory} onChange={e => setEditForm(p => ({ ...p, subcategory: e.target.value }))}
+                      className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all" required />
+                  </div>
+                  {/* Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1">Selling Price (₹) *</label>
+                    <input type="number" value={editForm.price} onChange={e => setEditForm(p => ({ ...p, price: e.target.value }))}
+                      className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all" required />
+                  </div>
+                  {/* Original Price */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1">Original Price (₹)</label>
+                    <input type="number" value={editForm.originalPrice} onChange={e => setEditForm(p => ({ ...p, originalPrice: e.target.value }))}
+                      className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all" />
+                  </div>
+                  {/* Sizes */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1">Sizes (comma separated)</label>
+                    <input type="text" value={editForm.sizes} onChange={e => setEditForm(p => ({ ...p, sizes: e.target.value }))}
+                      className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all" />
+                  </div>
+                  {/* Colors */}
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1">Colors (comma separated)</label>
+                    <input type="text" value={editForm.colors} onChange={e => setEditForm(p => ({ ...p, colors: e.target.value }))}
+                      className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all" />
+                  </div>
+                  {/* Image URL */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-surface-700 mb-1">Image URL</label>
+                    <input type="url" value={editForm.imageUrl} onChange={e => setEditForm(p => ({ ...p, imageUrl: e.target.value }))}
+                      placeholder="https://i.ibb.co/..." className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all" />
+                    {editForm.imageUrl && (
+                      <img src={editForm.imageUrl} alt="Preview" className="w-16 h-16 object-cover rounded-xl mt-2" onError={e => (e.currentTarget.style.display = 'none')} />
+                    )}
+                  </div>
+                  {/* Description */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-surface-700 mb-1">Description *</label>
+                    <textarea rows={3} value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
+                      className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all resize-none" required />
+                  </div>
+                </div>
+
+                {/* Stock Toggle inside modal */}
+                <div className="flex items-center justify-between p-4 bg-surface-50 rounded-xl">
+                  <div>
+                    <p className="font-medium text-sm text-surface-700">Stock Status</p>
+                    <p className="text-xs text-surface-400">Product customers ko dikhega ya nahi</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleStock(editingProduct)}
+                    className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+                      editingProduct.inStock
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-red-100 text-red-700 hover:bg-red-200'
+                    }`}
+                  >
+                    {editingProduct.inStock ? '✅ In Stock' : '❌ Out of Stock'}
+                  </button>
+                </div>
+
+                {/* Modal Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button type="submit" disabled={isEditSubmitting}
+                    className={`btn-primary py-3 px-8 rounded-xl text-base flex-1 ${isEditSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                    {isEditSubmitting ? '⏳ Saving...' : '💾 Save Changes'}
+                  </button>
+                  <button type="button" onClick={() => setEditingProduct(null)}
+                    className="px-6 py-3 bg-surface-100 text-surface-600 rounded-xl hover:bg-surface-200 transition-colors font-medium">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
