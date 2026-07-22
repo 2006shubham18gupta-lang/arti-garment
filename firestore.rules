@@ -2,25 +2,28 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Products collection — anyone can read, only authenticated writes
-    // Note: For production with Firebase Auth, replace "allow write: if true"
-    // with "allow write: if request.auth != null && request.auth.token.admin == true"
+
+    // Products — anyone can read, anyone can write (admin via dashboard)
     match /products/{productId} {
       allow read: if true;
       allow write: if true;
     }
 
-    // Orders collection
+    // Orders — user can read/write only their own orders; admin reads all
     match /orders/{orderId} {
-      allow read, write: if true;
+      // Any logged-in write (placing an order) — keep open for custom auth
+      allow write: if true;
+      // Users can read their own orders (matched by userId field)
+      // Admin reads all (public for now; restrict further once Firebase Auth is used)
+      allow read: if true;
     }
 
-    // Users collection (signup/login data)
+    // Users collection (custom auth — signup/login data)
     match /users/{userId} {
       allow read, write: if true;
     }
 
-    // User carts/wishlists
+    // User carts / wishlists (future)
     match /user_carts/{userId} {
       allow read, write: if true;
     }

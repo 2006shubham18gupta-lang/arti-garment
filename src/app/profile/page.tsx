@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/store/AuthContext';
 import { useStore } from '@/store/StoreContext';
+import { useOrders } from '@/store/OrderContext';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -15,6 +16,15 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { userOrders, userOrdersLoading, subscribeToUserOrders } = useOrders();
+
+  // Subscribe to real-time orders whenever the orders tab is opened
+  useEffect(() => {
+    if (activeTab === 'orders' && authState.user?.id) {
+      const unsubscribe = subscribeToUserOrders(authState.user.id);
+      return () => unsubscribe();
+    }
+  }, [activeTab, authState.user?.id, subscribeToUserOrders]);
 
   // Edit fields
   const [editName, setEditName] = useState('');
@@ -176,7 +186,7 @@ export default function ProfilePage() {
               <p className="text-xs text-surface-400">Wishlist</p>
             </div>
             <div className="p-4 text-center">
-              <p className="text-2xl font-display font-bold text-green-600">0</p>
+              <p className="text-2xl font-display font-bold text-green-600">{userOrders.length}</p>
               <p className="text-xs text-surface-400">Orders</p>
             </div>
           </div>
@@ -336,18 +346,98 @@ export default function ProfilePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="bg-white rounded-3xl border border-surface-100 p-8 text-center"
+              className="space-y-4"
             >
-              <div className="text-5xl mb-4">📦</div>
-              <h3 className="text-lg font-display font-semibold text-surface-700 mb-2">
-                No orders yet
-              </h3>
-              <p className="text-surface-400 text-sm mb-6">
-                When you place an order, it will appear here
-              </p>
-              <Link href="/" className="btn-primary inline-block px-6 py-3 rounded-xl text-sm">
-                Start Shopping
-              </Link>
+              {userOrdersLoading ? (
+                /* Loading State */
+                <div className="bg-white rounded-3xl border border-surface-100 p-12 text-center">
+                  <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-surface-400 text-sm">Loading your orders...</p>
+                </div>
+              ) : userOrders.length === 0 ? (
+                /* Empty State */
+                <div className="bg-white rounded-3xl border border-surface-100 p-10 text-center">
+                  <div className="text-5xl mb-4">📦</div>
+                  <h3 className="text-lg font-display font-semibold text-surface-700 mb-2">No orders yet</h3>
+                  <p className="text-surface-400 text-sm mb-6">Aapne abhi tak koi order nahi diya</p>
+                  <Link href="/" className="btn-primary inline-block px-6 py-3 rounded-xl text-sm">Start Shopping</Link>
+                </div>
+              ) : (
+                /* Orders List */
+                userOrders.map((order) => {
+                  const statusConfig: Record<string, { label: string; color: string; icon: string }> = {
+                    pending:   { label: 'Pending',   color: 'bg-amber-50 text-amber-700 border-amber-200',   icon: '⏳' },
+                    confirmed: { label: 'Confirmed', color: 'bg-blue-50 text-blue-700 border-blue-200',     icon: '✅' },
+                    shipped:   { label: 'Shipped',   color: 'bg-purple-50 text-purple-700 border-purple-200', icon: '🚚' },
+                    delivered: { label: 'Delivered', color: 'bg-green-50 text-green-700 border-green-200',  icon: '🎉' },
+                    rejected:  { label: 'Rejected',  color: 'bg-red-50 text-red-700 border-red-200',       icon: '❌' },
+                  };
+                  const s = statusConfig[order.status] || statusConfig.pending;
+
+                  return (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white rounded-3xl border border-surface-100 overflow-hidden"
+                    >
+                      {/* Order Header */}
+                      <div className="flex items-center justify-between px-6 py-4 border-b border-surface-50 bg-surface-50/50">
+                        <div>
+                          <p className="text-xs text-surface-400">Order ID</p>
+                          <p className="font-mono text-sm font-bold text-surface-700">#{order.id.slice(-8).toUpperCase()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-surface-400">
+                            {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border mt-1 ${s.color}`}>
+                            {s.icon} {s.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Order Items */}
+                      <div className="px-6 py-4 space-y-3">
+                        {order.items.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-surface-100 overflow-hidden flex-shrink-0">
+                              <img src={item.productImage} alt={item.productName} className="w-full h-full object-cover"
+                                onError={e => { e.currentTarget.src = '/images/products/kurta-navy.png'; }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-surface-800 truncate">{item.productName}</p>
+                              <p className="text-xs text-surface-400">Size: {item.selectedSize} · Qty: {item.quantity}</p>
+                            </div>
+                            <p className="text-sm font-bold text-surface-700">₹{(item.price * item.quantity).toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Order Footer */}
+                      <div className="px-6 py-4 border-t border-surface-50 flex items-center justify-between bg-surface-50/30">
+                        <div>
+                          <p className="text-xs text-surface-400">Payment</p>
+                          <p className="text-sm font-medium text-surface-700">💵 Cash on Delivery</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-surface-400">Total Amount</p>
+                          <p className="text-lg font-display font-bold text-primary-700">₹{order.totalAmount.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      {/* Rejection Reason */}
+                      {order.status === 'rejected' && order.rejectionReason && (
+                        <div className="px-6 pb-4">
+                          <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                            <p className="text-xs text-red-600">❌ Rejection reason: {order.rejectionReason}</p>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })
+              )}
             </motion.div>
           )}
         </AnimatePresence>

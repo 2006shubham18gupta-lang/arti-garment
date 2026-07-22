@@ -95,7 +95,7 @@ export default function CheckoutPage() {
         orderItems,
         address,
         grandTotal,
-        authState.user?.email || 'guest',
+        authState.user?.id || 'guest',         // ✅ user.id (correct)
         authState.user?.fullName || 'Guest',
         authState.user?.email || ''
       );
