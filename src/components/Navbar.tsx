@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/store/StoreContext';
 import { useAuth } from '@/store/AuthContext';
@@ -9,10 +10,15 @@ import { useProducts } from '@/store/ProductContext';
 import { Product } from '@/types';
 
 export default function Navbar() {
+  const pathname = usePathname();
   const { state, dispatch, cartCount } = useStore();
   const { state: authState } = useAuth();
   const { searchProducts } = useProducts();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

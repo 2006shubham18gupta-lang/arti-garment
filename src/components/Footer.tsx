@@ -2,8 +2,13 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
   return (
     <footer className="bg-slate-950 text-white relative overflow-hidden pt-16 pb-12 border-t border-slate-800/80">
       {/* Glow Orbs */}
