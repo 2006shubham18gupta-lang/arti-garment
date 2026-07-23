@@ -30,6 +30,9 @@ export default function Navbar() {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         dispatch({ type: 'TOGGLE_SEARCH', payload: false });
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -49,11 +52,11 @@ export default function Navbar() {
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
           scrolled
-            ? 'py-2 bg-white/80 backdrop-blur-xl shadow-lg border-b border-gray-100/50'
-            : 'py-4 bg-transparent'
+            ? 'py-3 bg-white/80 backdrop-blur-2xl shadow-sm border-b border-slate-100'
+            : 'py-5 bg-transparent'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -61,23 +64,23 @@ export default function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-accent-500 flex items-center justify-center text-white font-display font-bold text-lg group-hover:scale-110 transition-transform duration-300">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-900 flex items-center justify-center text-white font-luxury font-bold text-xl group-hover:scale-105 transition-transform duration-300 shadow-md">
                   A
                 </div>
-                <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-primary-600/20 to-accent-500/20 blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute -inset-1 rounded-2xl bg-indigo-500/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               <div>
-                <h1 className="text-xl font-display font-bold text-surface-900 tracking-tight">
-                  Arti <span className="text-gradient">Garment</span>
+                <h1 className="text-xl font-luxury font-bold tracking-wider text-slate-900 uppercase">
+                  ARTI <span className="text-indigo-600 font-light italic">Garment</span>
                 </h1>
-                <p className="text-[10px] text-surface-400 font-medium tracking-widest uppercase -mt-0.5">
-                  Atarra, Banda
+                <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase -mt-1">
+                  ATARRA • BANDA
                 </p>
               </div>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-1">
+            <div className="hidden md:flex items-center gap-2 bg-slate-100/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/50">
               {[
                 { name: 'Home', href: '/' },
                 { name: 'Men', href: '/category/men' },
@@ -87,7 +90,7 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="animated-underline px-4 py-2 text-sm font-medium text-surface-600 hover:text-primary-600 transition-colors duration-300"
+                  className="px-4 py-1.5 text-xs font-semibold text-slate-700 hover:text-indigo-600 hover:bg-white rounded-full transition-all duration-200"
                 >
                   {link.name}
                 </Link>
@@ -96,32 +99,32 @@ export default function Navbar() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
-              {/* Search Button */}
+              {/* Search Trigger */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => dispatch({ type: 'TOGGLE_SEARCH' })}
-                className="relative p-2.5 rounded-xl hover:bg-surface-100 transition-colors duration-300"
+                className="p-2.5 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors duration-200"
                 aria-label="Search"
               >
-                <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </motion.button>
 
-              {/* Wishlist */}
+              {/* Wishlist Icon */}
               <Link href="/wishlist">
                 <motion.div
                   whileTap={{ scale: 0.9 }}
-                  className="relative p-2.5 rounded-xl hover:bg-surface-100 transition-colors duration-300"
+                  className="relative p-2.5 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors duration-200"
                 >
-                  <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                   {state.wishlist.length > 0 && (
                     <motion.span
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-accent-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center"
+                      className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-md"
                     >
                       {state.wishlist.length}
                     </motion.span>
@@ -129,52 +132,49 @@ export default function Navbar() {
                 </motion.div>
               </Link>
 
-              {/* Cart */}
+              {/* Cart Button */}
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => dispatch({ type: 'TOGGLE_CART' })}
-                className="relative p-2.5 rounded-xl hover:bg-surface-100 transition-colors duration-300"
+                className="relative p-2.5 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors duration-200"
                 aria-label="Cart"
               >
-                <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
                 {cartCount > 0 && (
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-primary-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center"
+                    className="absolute top-1 right-1 w-4.5 h-4.5 bg-indigo-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-md"
                   >
                     {cartCount}
                   </motion.span>
                 )}
               </motion.button>
 
-              {/* User Account - Desktop */}
+              {/* User Account Menu - Desktop */}
               <div className="hidden md:block relative" ref={userMenuRef}>
                 {authState.isAuthenticated && authState.user ? (
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-xl hover:bg-surface-100 transition-colors duration-300"
+                    className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-2xl hover:bg-slate-100 border border-slate-200 transition-all duration-200"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-xs font-bold">
+                    <div className="w-7 h-7 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
                       {authState.user.fullName.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium text-surface-700 max-w-[80px] truncate">
+                    <span className="text-xs font-semibold text-slate-700 max-w-[80px] truncate">
                       {authState.user.fullName.split(' ')[0]}
                     </span>
-                    <svg className={`w-3.5 h-3.5 text-surface-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
                 ) : (
                   <Link
                     href="/login"
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary-600/20"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-sm"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
                     Login
                   </Link>
                 )}
@@ -186,34 +186,34 @@ export default function Navbar() {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-surface-100 overflow-hidden z-50"
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-56 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden z-50 p-2"
                     >
-                      <div className="p-3 bg-surface-50 border-b border-surface-100">
-                        <p className="text-sm font-semibold text-surface-800">{authState.user?.fullName}</p>
-                        <p className="text-xs text-surface-400 truncate">{authState.user?.email}</p>
+                      <div className="p-3 bg-slate-50 rounded-2xl mb-1">
+                        <p className="text-xs font-bold text-slate-900">{authState.user?.fullName}</p>
+                        <p className="text-[11px] text-slate-400 truncate">{authState.user?.email}</p>
                       </div>
-                      <div className="p-2">
+                      <div className="space-y-0.5">
                         <Link
                           href="/profile"
                           onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-surface-600 hover:bg-surface-50 hover:text-primary-600 transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
                         >
-                          <span>👤</span> मेरी प्रोफाइल
+                          <span>👤</span> My Profile
                         </Link>
                         <Link
                           href="/wishlist"
                           onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-surface-600 hover:bg-surface-50 hover:text-primary-600 transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
                         >
-                          <span>❤️</span> विशलिस्ट
+                          <span>❤️</span> Wishlist ({state.wishlist.length})
                         </Link>
                         <Link
                           href="/profile"
                           onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-surface-600 hover:bg-surface-50 hover:text-primary-600 transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
                         >
-                          <span>📦</span> मेरे ऑर्डर्स
+                          <span>📦</span> My Orders
                         </Link>
                       </div>
                     </motion.div>
@@ -221,13 +221,13 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
 
-              {/* Mobile Menu */}
+              {/* Mobile Hamburger */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2.5 rounded-xl hover:bg-surface-100 transition-colors"
+                className="md:hidden p-2 rounded-2xl hover:bg-slate-100 text-slate-700 transition-colors"
                 aria-label="Menu"
               >
-                <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {mobileMenuOpen ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   ) : (
@@ -239,31 +239,32 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Search Overlay */}
+        {/* Live Search Modal Overlay */}
         <AnimatePresence>
           {state.isSearchOpen && (
             <motion.div
               ref={searchRef}
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-xl shadow-2xl border-t border-gray-100"
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-2xl shadow-2xl border-t border-slate-100 z-50"
             >
               <div className="max-w-3xl mx-auto px-4 py-6">
                 <div className="relative">
-                  <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <input
                     type="text"
-                    placeholder="Search for kurtas, sarees, lehengas..."
+                    placeholder="Search kurtas, sarees, lehengas..."
                     value={state.searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
                     autoFocus
-                    className="w-full pl-12 pr-4 py-4 text-lg bg-surface-50 rounded-2xl border-2 border-transparent focus:border-primary-300 focus:outline-none transition-colors"
+                    className="w-full pl-12 pr-4 py-3.5 text-base bg-slate-100/70 rounded-2xl border border-transparent focus:border-indigo-500 focus:bg-white focus:outline-none transition-all"
                   />
                 </div>
+
                 {searchResults.length > 0 && (
                   <div className="mt-4 space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
                     {searchResults.map((product) => (
@@ -271,25 +272,25 @@ export default function Navbar() {
                         key={product.id}
                         href={`/product/${product.id}`}
                         onClick={() => dispatch({ type: 'TOGGLE_SEARCH', payload: false })}
-                        className="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-50 transition-colors group"
+                        className="flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-100 transition-colors group"
                       >
-                        <div className="w-14 h-14 rounded-lg bg-surface-100 overflow-hidden flex-shrink-0">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
                           <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-surface-800 group-hover:text-primary-600 transition-colors truncate">
+                          <p className="font-semibold text-sm text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
                             {product.name}
                           </p>
-                          <p className="text-sm text-surface-500">{product.subcategory} • {product.category}</p>
+                          <p className="text-xs text-slate-400">{product.subcategory} • {product.category}</p>
                         </div>
-                        <p className="font-bold text-primary-600">₹{product.price.toLocaleString()}</p>
+                        <p className="font-bold text-sm text-indigo-600">₹{product.price.toLocaleString()}</p>
                       </Link>
                     ))}
                   </div>
                 )}
                 {state.searchQuery.length > 1 && searchResults.length === 0 && (
-                  <p className="text-center text-surface-400 mt-6 py-4">
-                    No products found for &quot;{state.searchQuery}&quot;
+                  <p className="text-center text-slate-400 text-sm mt-4 py-2">
+                    No products matching &quot;{state.searchQuery}&quot;
                   </p>
                 )}
               </div>
@@ -297,15 +298,15 @@ export default function Navbar() {
           )}
         </AnimatePresence>
 
-        {/* Mobile Menu */}
+        {/* Mobile Navigation Drawer */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-100 overflow-hidden"
+              transition={{ duration: 0.25 }}
+              className="md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-100 overflow-hidden"
             >
               <div className="px-4 py-4 space-y-1">
                 {[
@@ -318,46 +319,35 @@ export default function Navbar() {
                     key={link.name}
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-4 py-3 rounded-xl text-surface-600 hover:text-primary-600 hover:bg-surface-50 font-medium transition-colors"
+                    className="block px-4 py-3 rounded-2xl text-slate-700 font-semibold hover:text-indigo-600 hover:bg-slate-100 text-sm transition-colors"
                   >
                     {link.name}
                   </Link>
                 ))}
-                <div className="border-t border-surface-100 pt-3 mt-3">
+                <div className="border-t border-slate-100 pt-3 mt-3">
                   {authState.isAuthenticated && authState.user ? (
-                    <>
-                      <div className="flex items-center gap-3 px-4 py-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-bold">
-                          {authState.user.fullName.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-surface-800">{authState.user.fullName}</p>
-                          <p className="text-xs text-surface-400">{authState.user.phone}</p>
-                        </div>
-                      </div>
-                      <Link
-                        href="/profile"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="block px-4 py-3 rounded-xl text-surface-600 hover:text-primary-600 hover:bg-surface-50 font-medium transition-colors"
-                      >
-                        👤 मेरी प्रोफाइल / Profile
-                      </Link>
-                    </>
+                    <Link
+                      href="/profile"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-4 py-3 rounded-2xl text-slate-700 font-semibold hover:text-indigo-600 hover:bg-slate-100 text-sm transition-colors"
+                    >
+                      👤 My Profile ({authState.user.fullName})
+                    </Link>
                   ) : (
-                    <div className="flex gap-2 px-4">
+                    <div className="flex gap-2 px-2 pt-2">
                       <Link
                         href="/login"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex-1 py-3 text-center rounded-xl bg-primary-600 text-white font-semibold text-sm"
+                        className="flex-1 py-3 text-center rounded-2xl bg-slate-900 text-white font-bold text-xs uppercase tracking-wider"
                       >
-                        लॉगिन
+                        Login
                       </Link>
                       <Link
                         href="/signup"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex-1 py-3 text-center rounded-xl border-2 border-primary-600 text-primary-600 font-semibold text-sm"
+                        className="flex-1 py-3 text-center rounded-2xl border border-slate-300 text-slate-700 font-bold text-xs uppercase tracking-wider"
                       >
-                        रजिस्टर
+                        Sign Up
                       </Link>
                     </div>
                   )}
@@ -368,7 +358,7 @@ export default function Navbar() {
         </AnimatePresence>
       </motion.nav>
 
-      {/* Cart Sidebar */}
+      {/* Cart Drawer */}
       <CartSidebar />
     </>
   );
@@ -386,105 +376,98 @@ function CartSidebar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => dispatch({ type: 'TOGGLE_CART', payload: false })}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+            className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-[60]"
           />
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
             className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-[70] flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-surface-100">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
               <div>
-                <h2 className="text-xl font-display font-bold text-surface-900">Your Cart</h2>
-                <p className="text-sm text-surface-400">{cartCount} item{cartCount !== 1 ? 's' : ''}</p>
+                <h2 className="text-lg font-bold font-luxury text-slate-900">Shopping Cart</h2>
+                <p className="text-xs text-slate-400">{cartCount} item{cartCount !== 1 ? 's' : ''}</p>
               </div>
               <button
                 onClick={() => dispatch({ type: 'TOGGLE_CART', payload: false })}
-                className="p-2 rounded-xl hover:bg-surface-100 transition-colors"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                ✕
               </button>
             </div>
 
             {/* Cart Items */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4 space-y-4">
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4 space-y-3">
               {state.cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="w-24 h-24 rounded-full bg-surface-50 flex items-center justify-center mb-4">
-                    <svg className="w-10 h-10 text-surface-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center mb-3">
+                    <svg className="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
                   </div>
-                  <p className="font-display font-semibold text-surface-700">Your cart is empty</p>
-                  <p className="text-sm text-surface-400 mt-1">Add items to get started</p>
+                  <p className="font-semibold text-slate-700 text-sm">Your cart is empty</p>
+                  <p className="text-xs text-slate-400 mt-1">Explore our collection to add items</p>
                 </div>
               ) : (
                 state.cart.map((item) => (
-                  <motion.div
+                  <div
                     key={`${item.product.id}-${item.selectedSize}`}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: 100 }}
-                    className="flex gap-4 p-3 rounded-2xl bg-surface-50/50 border border-surface-100"
+                    className="flex gap-3 p-3 rounded-2xl bg-slate-50/80 border border-slate-100"
                   >
-                    <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-white">
+                    <div className="w-16 h-20 rounded-xl overflow-hidden bg-white flex-shrink-0">
                       <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-surface-800 truncate">{item.product.name}</p>
-                      <p className="text-xs text-surface-400 mt-0.5">Size: {item.selectedSize}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-2 bg-white rounded-lg border border-surface-200">
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div>
+                        <p className="font-semibold text-xs text-slate-900 truncate">{item.product.name}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Size: {item.selectedSize}</p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-2 py-0.5">
                           <button
                             onClick={() => dispatch({ type: 'UPDATE_CART_QTY', payload: { id: item.product.id, qty: item.quantity - 1 } })}
-                            className="w-7 h-7 flex items-center justify-center text-surface-500 hover:text-primary-600"
+                            className="text-slate-500 hover:text-indigo-600 text-xs"
                           >
                             −
                           </button>
-                          <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
+                          <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
                           <button
                             onClick={() => dispatch({ type: 'UPDATE_CART_QTY', payload: { id: item.product.id, qty: item.quantity + 1 } })}
-                            className="w-7 h-7 flex items-center justify-center text-surface-500 hover:text-primary-600"
+                            className="text-slate-500 hover:text-indigo-600 text-xs"
                           >
                             +
                           </button>
                         </div>
-                        <p className="font-bold text-sm text-primary-700">₹{(item.product.price * item.quantity).toLocaleString()}</p>
+                        <p className="font-bold text-xs text-indigo-600">₹{(item.product.price * item.quantity).toLocaleString()}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => dispatch({ type: 'REMOVE_FROM_CART', payload: item.product.id })}
-                      className="self-start p-1 rounded-lg hover:bg-red-50 text-surface-300 hover:text-red-500 transition-colors"
+                      className="self-start text-slate-300 hover:text-rose-500 p-1"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      ✕
                     </button>
-                  </motion.div>
+                  </div>
                 ))
               )}
             </div>
 
             {/* Footer */}
             {state.cart.length > 0 && (
-              <div className="border-t border-surface-100 px-6 py-5 space-y-4">
+              <div className="border-t border-slate-100 px-6 py-5 space-y-3 bg-slate-50/50">
                 <div className="flex items-center justify-between">
-                  <span className="text-surface-500">Subtotal</span>
-                  <span className="text-xl font-display font-bold text-surface-900">₹{cartTotal.toLocaleString()}</span>
+                  <span className="text-xs font-semibold text-slate-500">Subtotal</span>
+                  <span className="text-lg font-bold text-slate-900">₹{cartTotal.toLocaleString()}</span>
                 </div>
-                <p className="text-xs text-surface-400">Shipping calculated at checkout</p>
                 <Link
                   href="/checkout"
                   onClick={() => dispatch({ type: 'TOGGLE_CART', payload: false })}
-                  className="block w-full btn-primary text-center py-4 rounded-2xl text-base"
+                  className="block w-full btn-primary text-center py-3.5 rounded-2xl text-xs font-bold uppercase tracking-wider shadow-lg"
                 >
-                  Proceed to Checkout
+                  Checkout Now
                 </Link>
               </div>
             )}
