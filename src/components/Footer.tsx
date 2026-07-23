@@ -101,17 +101,26 @@ export default function Footer() {
           {/* Embedded Google Map */}
           <div>
             <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Visit Our Showroom</h4>
-            <div className="rounded-2xl overflow-hidden border border-slate-800 aspect-video">
+            <div className="rounded-2xl overflow-hidden border border-slate-800 aspect-video relative group bg-slate-900 shadow-lg">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14450.089!2d80.58!3d25.63!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x399c3f0a95a6d2e1%3A0xc45d66f87e0aba28!2sAtarra%2C%20Uttar%20Pradesh%20210201!5e0!3m2!1sen!2sin!4v1"
+                title="Arti Garment Location Map"
+                src="https://maps.google.com/maps?q=Main+Bazaar+Atarra+Banda+Uttar+Pradesh+210201&t=&z=15&ie=UTF8&iwloc=&output=embed"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                className="grayscale hover:grayscale-0 transition-all duration-500 opacity-80 hover:opacity-100"
+                className="w-full h-full rounded-2xl opacity-90 hover:opacity-100 transition-opacity"
               />
+              <a
+                href="https://maps.google.com/?q=Main+Bazaar+Atarra+Banda+Uttar+Pradesh+210201"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-2 right-2 px-2.5 py-1 bg-slate-950/90 border border-slate-700 hover:border-indigo-500 rounded-xl text-[10px] font-bold text-indigo-400 hover:text-white flex items-center gap-1 backdrop-blur-md shadow-md transition-all"
+              >
+                <span>📍 Open Maps</span>
+              </a>
             </div>
           </div>
         </div>
