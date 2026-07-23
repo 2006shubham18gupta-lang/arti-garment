@@ -29,7 +29,7 @@ export default function ProductSection({ title, subtitle, tag, products, horizon
   };
 
   return (
-    <section className="py-16 md:py-24 relative">
+    <section className="py-16 md:py-24 relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <motion.div
@@ -39,15 +39,16 @@ export default function ProductSection({ title, subtitle, tag, products, horizon
           className="flex items-end justify-between mb-10"
         >
           <div>
-            <span className="text-sm font-semibold text-primary-500 uppercase tracking-widest">{tag}</span>
-            <h2 className="section-heading mt-2">{title}</h2>
-            <p className="section-subheading">{subtitle}</p>
+            <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">{tag}</span>
+            <h2 className="text-3xl md:text-5xl font-bold font-luxury text-white mt-1.5">{title}</h2>
+            <p className="text-slate-400 text-sm md:text-base font-light mt-1.5">{subtitle}</p>
           </div>
           {horizontal && (
             <div className="hidden sm:flex items-center gap-2">
               <button
                 onClick={scrollLeft}
-                className="w-10 h-10 rounded-full border border-surface-200 flex items-center justify-center hover:bg-primary-600 hover:text-white hover:border-primary-600 transition-all duration-300"
+                className="w-10 h-10 rounded-full border border-white/20 bg-white/5 text-white flex items-center justify-center hover:bg-indigo-600 hover:border-indigo-600 transition-all duration-300 backdrop-blur-md"
+                aria-label="Scroll left"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -55,7 +56,8 @@ export default function ProductSection({ title, subtitle, tag, products, horizon
               </button>
               <button
                 onClick={scrollRight}
-                className="w-10 h-10 rounded-full border border-surface-200 flex items-center justify-center hover:bg-primary-600 hover:text-white hover:border-primary-600 transition-all duration-300"
+                className="w-10 h-10 rounded-full border border-white/20 bg-white/5 text-white flex items-center justify-center hover:bg-indigo-600 hover:border-indigo-600 transition-all duration-300 backdrop-blur-md"
+                aria-label="Scroll right"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -69,7 +71,7 @@ export default function ProductSection({ title, subtitle, tag, products, horizon
         {horizontal ? (
           <div
             ref={scrollRef}
-            className="flex gap-6 overflow-x-auto custom-scrollbar pb-4 snap-x snap-mandatory -mx-4 px-4"
+            className="flex gap-6 overflow-x-auto custom-scrollbar pb-6 snap-x snap-mandatory -mx-4 px-4"
           >
             {products.map((product, i) => (
               <div key={product.id} className="flex-shrink-0 w-72 snap-start">
