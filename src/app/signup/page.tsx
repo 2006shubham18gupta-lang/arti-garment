@@ -102,14 +102,22 @@ export default function SignupPage() {
     }
   };
 
-  const inputClass = "w-full px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-xl text-surface-800 placeholder:text-surface-400 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 transition-all text-sm";
-  const labelClass = "block text-sm font-medium text-surface-700 mb-1.5";
+  const inputClass = "w-full px-4 py-3.5 bg-white/5 border border-white/15 rounded-2xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all text-sm";
+  const labelClass = "block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-950 via-primary-900 to-primary-800 flex items-center justify-center px-4 py-24">
-      {/* Background decorations */}
-      <div className="absolute top-20 right-20 w-72 h-72 bg-accent-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 left-20 w-56 h-56 bg-primary-400/10 rounded-full blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center px-4 py-24 relative overflow-hidden">
+      {/* Live Animated Background Orbs */}
+      <motion.div
+        animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.15, 0.25, 0.15] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute -top-20 -left-20 w-[500px] h-[500px] bg-gradient-to-br from-purple-600 to-indigo-700 rounded-full blur-[130px] pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.3, 1], rotate: [0, -60, 0], opacity: [0.1, 0.2, 0.1] }}
+        transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute -bottom-20 -right-20 w-[500px] h-[500px] bg-gradient-to-tr from-rose-600 to-amber-500 rounded-full blur-[140px] pointer-events-none"
+      />
 
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -120,12 +128,12 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-display font-bold text-2xl shadow-2xl shadow-primary-500/30 mb-3">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-luxury font-bold text-3xl shadow-2xl shadow-indigo-500/30 mb-4">
               A
             </div>
           </Link>
-          <h1 className="text-2xl font-display font-bold text-white">Create Your Account</h1>
-          <p className="text-white/50 mt-1 text-sm">Join Arti Garment for the best shopping experience</p>
+          <h1 className="text-3xl font-luxury font-bold text-white tracking-wide">Create Your Account</h1>
+          <p className="text-slate-400 mt-1 text-xs uppercase tracking-widest font-semibold">Join Arti Garment for the best shopping experience</p>
         </div>
 
         {/* Progress Steps */}
@@ -135,11 +143,11 @@ export default function SignupPage() {
               <motion.div
                 animate={{
                   scale: step === s ? 1.1 : 1,
-                  backgroundColor: step >= s ? (s === 3 ? '#22c55e' : '#6366f1') : 'rgba(255,255,255,0.1)',
+                  backgroundColor: step >= s ? (s === 3 ? '#22c55e' : '#6366f1') : 'rgba(255,255,255,0.08)',
                 }}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white border-2 transition-colors"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 transition-colors"
                 style={{
-                  borderColor: step >= s ? (s === 3 ? '#22c55e' : '#6366f1') : 'rgba(255,255,255,0.2)',
+                  borderColor: step >= s ? (s === 3 ? '#22c55e' : '#6366f1') : 'rgba(255,255,255,0.15)',
                 }}
               >
                 {step > s ? (
@@ -151,21 +159,21 @@ export default function SignupPage() {
                 )}
               </motion.div>
               {s < 3 && (
-                <div className={`w-12 h-0.5 rounded-full transition-colors ${step > s ? 'bg-primary-500' : 'bg-white/10'}`} />
+                <div className={`w-12 h-0.5 rounded-full transition-colors ${step > s ? 'bg-indigo-500' : 'bg-white/10'}`} />
               )}
             </div>
           ))}
         </div>
 
         {/* Step Labels */}
-        <div className="flex items-center justify-center gap-8 mb-6 text-xs text-white/40">
-          <span className={step >= 1 ? 'text-white/70' : ''}>Personal Info</span>
-          <span className={step >= 2 ? 'text-white/70' : ''}>Address</span>
-          <span className={step >= 3 ? 'text-green-400' : ''}>Complete ✓</span>
+        <div className="flex items-center justify-center gap-8 mb-6 text-[10px] text-slate-500 uppercase tracking-wider font-bold">
+          <span className={step >= 1 ? 'text-slate-300' : ''}>Personal Info</span>
+          <span className={step >= 2 ? 'text-slate-300' : ''}>Address</span>
+          <span className={step >= 3 ? 'text-emerald-400' : ''}>Complete ✓</span>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+        <div className="rounded-3xl glass-dark border border-white/10 shadow-2xl overflow-hidden">
           <AnimatePresence mode="wait">
             {/* Step 1: Personal Info */}
             {step === 1 && (
@@ -179,15 +187,15 @@ export default function SignupPage() {
                 className="p-6 md:p-8 space-y-5"
               >
                 <div>
-                  <h2 className="text-lg font-display font-bold text-surface-900">Personal Details</h2>
-                  <p className="text-sm text-surface-400">Tell us about yourself</p>
+                  <h2 className="text-lg font-luxury font-bold text-white">Personal Details</h2>
+                  <p className="text-xs text-slate-400">Tell us about yourself</p>
                 </div>
 
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-center gap-2"
+                    className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-2xl text-sm text-rose-300 flex items-center gap-2"
                   >
                     <span>⚠️</span> {error}
                   </motion.div>
@@ -208,7 +216,7 @@ export default function SignupPage() {
                 <div>
                   <label className={labelClass}>Mobile Number *</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-surface-400 font-medium">+91</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-500 font-medium">+91</span>
                     <input
                       type="tel"
                       value={phone}
@@ -248,7 +256,7 @@ export default function SignupPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
                     >
                       {showPassword ? (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -278,14 +286,14 @@ export default function SignupPage() {
 
                 <button
                   type="submit"
-                  className="w-full py-4 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-display font-bold rounded-xl hover:shadow-lg hover:shadow-primary-500/30 transition-all duration-300 hover:-translate-y-0.5 text-base"
+                  className="w-full py-4 btn-primary rounded-2xl text-xs font-bold uppercase tracking-wider shadow-xl"
                 >
                   Next Step →
                 </button>
 
-                <p className="text-center text-sm text-surface-400">
+                <p className="text-center text-xs text-slate-400">
                   Already have an account?{' '}
-                  <Link href="/login" className="text-primary-600 font-semibold hover:underline">
+                  <Link href="/login" className="text-indigo-400 font-bold hover:text-indigo-300 transition-colors">
                     Login
                   </Link>
                 </p>
@@ -304,15 +312,15 @@ export default function SignupPage() {
                 className="p-6 md:p-8 space-y-5"
               >
                 <div>
-                  <h2 className="text-lg font-display font-bold text-surface-900">Delivery Address</h2>
-                  <p className="text-sm text-surface-400">Where should we deliver your orders?</p>
+                  <h2 className="text-lg font-luxury font-bold text-white">Delivery Address</h2>
+                  <p className="text-xs text-slate-400">Where should we deliver your orders?</p>
                 </div>
 
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-center gap-2"
+                    className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-2xl text-sm text-rose-300 flex items-center gap-2"
                   >
                     <span>⚠️</span> {error}
                   </motion.div>
@@ -399,13 +407,13 @@ export default function SignupPage() {
                   <button
                     type="button"
                     onClick={() => { setStep(1); setError(''); }}
-                    className="px-6 py-4 bg-surface-100 text-surface-600 font-medium rounded-xl hover:bg-surface-200 transition-colors"
+                    className="px-6 py-4 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-colors text-xs uppercase tracking-wider"
                   >
                     ← Back
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-4 bg-gradient-to-r from-primary-600 to-accent-500 text-white font-display font-bold rounded-xl hover:shadow-lg hover:shadow-primary-500/30 transition-all duration-300 hover:-translate-y-0.5 text-base"
+                    className="flex-1 py-4 btn-primary rounded-2xl text-xs font-bold uppercase tracking-wider shadow-xl"
                   >
                     Create Account ✨
                   </button>
@@ -426,28 +434,28 @@ export default function SignupPage() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                  className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-6"
+                  className="w-20 h-20 mx-auto rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-6"
                 >
-                  <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                 </motion.div>
-                <h2 className="text-2xl font-display font-bold text-surface-900 mb-2">
+                <h2 className="text-2xl font-luxury font-bold text-white mb-2">
                   🎉 Welcome, {fullName}!
                 </h2>
-                <p className="text-surface-500 mb-2">
+                <p className="text-slate-300 mb-2 text-sm">
                   Your account has been created successfully.
                 </p>
-                <p className="text-sm text-surface-400">
+                <p className="text-xs text-slate-500">
                   Redirecting to homepage...
                 </p>
                 <div className="mt-6">
-                  <div className="w-full h-1.5 bg-surface-100 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: '100%' }}
                       transition={{ duration: 2.5 }}
-                      className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full"
+                      className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
                     />
                   </div>
                 </div>
