@@ -147,23 +147,6 @@ export default function HeroSection() {
         </div>
       </motion.div>
 
-      {/* Floating Interactive Glass Card Accent */}
-      <motion.div
-        initial={{ opacity: 0, x: 50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1, duration: 0.8 }}
-        className="hidden lg:flex absolute bottom-16 right-16 z-20 p-4 rounded-3xl glass-dark border border-white/20 items-center gap-4 shadow-2xl max-w-xs"
-      >
-        <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-800 flex-shrink-0">
-          <img src="/images/products/lehenga-red.png" alt="Featured" className="w-full h-full object-cover" />
-        </div>
-        <div>
-          <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest">Trending Now</span>
-          <p className="text-xs font-semibold text-white truncate max-w-[150px]">Bridal Silk Lehenga</p>
-          <p className="text-xs text-slate-300 font-bold mt-0.5">₹14,999</p>
-        </div>
-      </motion.div>
-
       {/* Scroll Down Indicator */}
       <motion.div
         initial={{ opacity: 0 }}
