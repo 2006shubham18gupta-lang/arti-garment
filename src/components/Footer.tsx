@@ -1,60 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 
 export default function Footer() {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubscribed(true);
-      setEmail('');
-      setTimeout(() => setSubscribed(false), 3000);
-    }
-  };
-
   return (
-    <footer className="bg-slate-950 text-white relative overflow-hidden pt-20 pb-12 border-t border-slate-800/80">
+    <footer className="bg-slate-950 text-white relative overflow-hidden pt-16 pb-12 border-t border-slate-800/80">
       {/* Glow Orbs */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-900/15 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
       <div className="absolute bottom-0 right-10 w-96 h-96 bg-pink-900/15 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Top Newsletter Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="p-8 md:p-12 rounded-3xl glass-dark border border-white/10 mb-16 flex flex-col lg:flex-row items-center justify-between gap-8"
-        >
-          <div className="max-w-xl">
-            <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Join The Privilege Club</span>
-            <h3 className="text-2xl md:text-3xl font-luxury font-bold text-white mt-1">Receive Exclusive VIP Offers & New Drops</h3>
-            <p className="text-slate-400 text-sm mt-2">Subscribe to get secret discount codes, festival collection previews, and seasonal updates directly in your inbox.</p>
-          </div>
-
-          <form onSubmit={handleSubscribe} className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email address"
-              className="px-5 py-3.5 bg-white/10 border border-white/20 rounded-2xl text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-indigo-400 min-w-[280px]"
-              required
-            />
-            <button
-              type="submit"
-              className="px-8 py-3.5 btn-gold rounded-2xl text-xs uppercase tracking-wider font-bold shadow-lg"
-            >
-              {subscribed ? 'Subscribed! 🎉' : 'Subscribe'}
-            </button>
-          </form>
-        </motion.div>
-
         {/* Main Footer Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 pb-16 border-b border-slate-800/80">
           {/* Brand Col */}
