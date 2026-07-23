@@ -195,8 +195,8 @@ export default function AdminPage() {
           className="w-full max-w-md relative z-10"
         >
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-luxury font-bold text-3xl mb-4 shadow-2xl shadow-indigo-500/30">
-              A
+            <div className="w-20 h-20 mx-auto rounded-3xl overflow-hidden bg-amber-500/10 border border-amber-400/30 p-1 mb-4 shadow-2xl shadow-amber-500/20">
+              <img src="/images/logo.png" alt="Arti Garment Logo" className="w-full h-full object-cover rounded-2xl" />
             </div>
             <h1 className="text-3xl font-luxury font-bold text-white tracking-wider uppercase">Luxury Admin Portal</h1>
             <p className="text-slate-400 mt-1 text-xs uppercase tracking-widest font-semibold">Arti Garment • Management System</p>
@@ -254,8 +254,8 @@ export default function AdminPage() {
           {/* Brand Logo & Collapse Toggle */}
           <div className="flex items-center justify-between pb-6 mb-6 border-b border-slate-200/60">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-luxury font-bold text-xl shadow-lg flex-shrink-0">
-                A
+              <div className="w-10 h-10 rounded-2xl overflow-hidden bg-amber-500/10 border border-amber-500/20 p-0.5 flex-shrink-0 shadow-lg">
+                <img src="/images/logo.png" alt="Arti Garment Logo" className="w-full h-full object-cover rounded-xl" />
               </div>
               {!sidebarCollapsed && (
                 <div>

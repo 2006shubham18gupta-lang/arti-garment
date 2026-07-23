@@ -59,12 +59,12 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-luxury font-bold text-3xl shadow-2xl shadow-indigo-500/30 mb-4">
-              A
+            <div className="w-20 h-20 mx-auto rounded-3xl overflow-hidden bg-amber-500/10 border border-amber-400/30 p-1 shadow-2xl shadow-amber-500/20 mb-4 hover:scale-105 transition-transform">
+              <img src="/images/logo.png" alt="Arti Garment Logo" className="w-full h-full object-cover rounded-2xl" />
             </div>
           </Link>
           <h1 className="text-3xl font-luxury font-bold text-white tracking-wide">Welcome Back</h1>
-          <p className="text-slate-400 mt-1 text-xs uppercase tracking-widest font-semibold">Login to your Arti Garment account</p>
+          <p className="text-amber-400/90 mt-1 text-xs uppercase tracking-widest font-semibold">Fashion For Every You</p>
         </div>
 
         {/* Form Card */}

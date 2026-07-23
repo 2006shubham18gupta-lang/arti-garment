@@ -64,10 +64,10 @@ export default function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-900 flex items-center justify-center text-white font-luxury font-bold text-xl group-hover:scale-105 transition-transform duration-300 shadow-md">
-                  A
+                <div className="w-11 h-11 rounded-2xl overflow-hidden bg-amber-500/10 border border-amber-500/20 flex items-center justify-center p-0.5 group-hover:scale-105 transition-transform duration-300 shadow-md">
+                  <img src="/images/logo.png" alt="Arti Garment Logo" className="w-full h-full object-cover rounded-xl" />
                 </div>
-                <div className="absolute -inset-1 rounded-2xl bg-indigo-500/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute -inset-1 rounded-2xl bg-amber-500/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               <div>
                 <h1 className="text-xl font-luxury font-bold tracking-wider text-slate-900 uppercase">

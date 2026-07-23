@@ -16,12 +16,12 @@ export default function Footer() {
           {/* Brand Col */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-luxury font-bold text-xl shadow-lg">
-                A
+              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-amber-500/10 border border-amber-500/20 p-0.5 flex-shrink-0 shadow-lg">
+                <img src="/images/logo.png" alt="Arti Garment Logo" className="w-full h-full object-cover rounded-xl" />
               </div>
               <div>
                 <h4 className="text-xl font-luxury font-bold text-white uppercase tracking-wider">Arti Garment</h4>
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Atarra • Banda</p>
+                <p className="text-[10px] text-amber-400 uppercase tracking-widest font-bold">Fashion For Every You</p>
               </div>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed mb-6">
