@@ -113,36 +113,7 @@ export default function HeroSection() {
         className="absolute bottom-20 left-12 w-80 h-80 rounded-full bg-amber-500/15 blur-3xl pointer-events-none z-[1]"
       />
 
-      {/* Floating Glass Feature Badges (Interactive Parallax Elements) */}
-      <motion.div
-        animate={{
-          x: mousePos.x * -0.5,
-          y: mousePos.y * -0.5 + Math.sin(Date.now() / 1000) * 8,
-        }}
-        transition={{ type: 'spring', damping: 20 }}
-        className="hidden lg:flex absolute top-36 right-16 z-20 items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl text-white pointer-events-none"
-      >
-        <span className="text-xl">✨</span>
-        <div>
-          <p className="text-xs font-bold font-luxury tracking-wide">Pure Handcrafted Silk</p>
-          <p className="text-[10px] text-amber-300 font-semibold uppercase">100% Authentic Atarra Craft</p>
-        </div>
-      </motion.div>
 
-      <motion.div
-        animate={{
-          x: mousePos.x * 0.4,
-          y: mousePos.y * 0.4 - Math.sin(Date.now() / 1000) * 8,
-        }}
-        transition={{ type: 'spring', damping: 20 }}
-        className="hidden lg:flex absolute bottom-36 right-32 z-20 items-center gap-3 px-4 py-2.5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl text-white pointer-events-none"
-      >
-        <span className="text-xl">👑</span>
-        <div>
-          <p className="text-xs font-bold font-luxury tracking-wide">Festive & Bridal Edit</p>
-          <p className="text-[10px] text-emerald-300 font-semibold uppercase">New Arrival 2026</p>
-        </div>
-      </motion.div>
 
       {/* Main Content */}
       <motion.div style={{ opacity }} className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28 md:py-36 w-full">
