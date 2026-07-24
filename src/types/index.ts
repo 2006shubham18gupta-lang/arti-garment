@@ -73,3 +73,34 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface OfferBanner {
+  id: string;
+  firestoreId?: string;
+  title: string;
+  subtitle?: string;
+  discount?: string;
+  imageUrl?: string;
+  buttonText?: string;
+  buttonLink?: string;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string;   // YYYY-MM-DD
+  position?: string; // 'homepage' | 'hero' | 'top' | 'middle'
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Coupon {
+  id: string;
+  firestoreId?: string;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderValue?: number;
+  maxDiscount?: number;
+  expiryDate?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+

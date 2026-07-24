@@ -4,6 +4,7 @@ import { StoreProvider } from '@/store/StoreContext';
 import { AuthProvider } from '@/store/AuthContext';
 import { ProductProvider } from '@/store/ProductContext';
 import { OrderProvider } from '@/store/OrderContext';
+import { BannerProvider } from '@/store/BannerContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -50,15 +51,17 @@ export default function RootLayout({
 
         <AuthProvider>
           <ProductProvider>
-            <StoreProvider>
-              <OrderProvider>
-                <div className="relative z-10 flex flex-col min-h-screen">
-                  <Navbar />
-                  <main className="flex-1">{children}</main>
-                  <Footer />
-                </div>
-              </OrderProvider>
-            </StoreProvider>
+            <BannerProvider>
+              <StoreProvider>
+                <OrderProvider>
+                  <div className="relative z-10 flex flex-col min-h-screen">
+                    <Navbar />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+                </OrderProvider>
+              </StoreProvider>
+            </BannerProvider>
           </ProductProvider>
         </AuthProvider>
       </body>

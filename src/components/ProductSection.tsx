@@ -68,7 +68,15 @@ export default function ProductSection({ title, subtitle, tag, products, horizon
         </motion.div>
 
         {/* Products */}
-        {horizontal ? (
+        {products.length === 0 ? (
+          <div className="py-12 px-6 rounded-3xl bg-slate-900/50 border border-white/10 backdrop-blur-xl text-center">
+            <div className="text-4xl mb-3">🛍️</div>
+            <h3 className="text-xl font-bold font-luxury text-white mb-1">No Products Available</h3>
+            <p className="text-slate-400 text-xs md:text-sm font-light max-w-md mx-auto">
+              Products added by the admin will appear here automatically.
+            </p>
+          </div>
+        ) : horizontal ? (
           <div
             ref={scrollRef}
             className="flex gap-6 overflow-x-auto custom-scrollbar pb-6 snap-x snap-mandatory -mx-4 px-4"

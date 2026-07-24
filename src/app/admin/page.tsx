@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts } from '@/store/ProductContext';
 import { useOrders } from '@/store/OrderContext';
-import { Product } from '@/types';
+import { useBanners } from '@/store/BannerContext';
+import { Product, OfferBanner as OfferBannerType } from '@/types';
 
 interface NewProduct {
   name: string;
@@ -33,7 +34,7 @@ const emptyProduct: NewProduct = {
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'add' | 'orders' | 'analytics'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'add' | 'banners' | 'orders' | 'customers' | 'analytics'>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
@@ -41,16 +42,34 @@ export default function AdminPage() {
 
   const { allProducts, addProduct, updateProduct, deleteProduct } = useProducts();
   const { orders, isLoading, fetchAllOrders, updateOrderStatus } = useOrders();
+  const { banners, addBanner, updateBanner, deleteBanner, toggleBannerStatus } = useBanners();
+
   const [newProduct, setNewProduct] = useState<NewProduct>(emptyProduct);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  // Edit state
+  // Edit Product state
   const [editingProduct, setEditingProduct] = useState<(Product & { firestoreId?: string }) | null>(null);
-  const [editForm, setEditForm] = useState<NewProduct>(emptyProduct);
+  const [editForm, setEditForm] = useState<NewProduct & { isTrending?: boolean; isNew?: boolean }>(emptyProduct);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+
+  // Banner State
+  const [newBanner, setNewBanner] = useState({
+    title: '',
+    subtitle: '',
+    discount: '40% OFF',
+    imageUrl: '',
+    buttonText: 'Shop Now',
+    buttonLink: '/category/women',
+    startDate: '',
+    endDate: '',
+    position: 'homepage',
+    isActive: true,
+  });
+  const [isAddingBanner, setIsAddingBanner] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<OfferBannerType | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -124,6 +143,8 @@ export default function AdminPage() {
       colors: product.colors.join(', '),
       description: product.description,
       imageUrl: product.images[0] || '',
+      isTrending: product.isTrending,
+      isNew: product.isNew,
     });
   };
 
@@ -142,6 +163,8 @@ export default function AdminPage() {
         colors: editForm.colors.split(',').map(c => c.trim()),
         description: editForm.description,
         images: [editForm.imageUrl || '/images/products/kurta-navy.png'],
+        isTrending: editForm.isTrending,
+        isNew: editForm.isNew,
         discount: editForm.originalPrice
           ? Math.round((1 - Number(editForm.price) / Number(editForm.originalPrice)) * 100)
           : undefined,
@@ -160,6 +183,74 @@ export default function AdminPage() {
       await updateProduct(product.id, { inStock: !product.inStock });
     } catch {
       alert('Stock update karne mein problem hui.');
+    }
+  };
+
+  const handleToggleProductTrending = async (product: Product) => {
+    try {
+      await updateProduct(product.id, { isTrending: !product.isTrending });
+    } catch {
+      alert('Failed to update homepage featured status.');
+    }
+  };
+
+  const handleToggleProductNew = async (product: Product) => {
+    try {
+      await updateProduct(product.id, { isNew: !product.isNew });
+    } catch {
+      alert('Failed to update new arrivals status.');
+    }
+  };
+
+  const handleAddBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await addBanner(newBanner);
+      setNewBanner({
+        title: '',
+        subtitle: '',
+        discount: '40% OFF',
+        imageUrl: '',
+        buttonText: 'Shop Now',
+        buttonLink: '/category/women',
+        startDate: '',
+        endDate: '',
+        position: 'homepage',
+        isActive: true,
+      });
+      setIsAddingBanner(false);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch {
+      alert('Failed to save offer banner.');
+    }
+  };
+
+  const handleEditBannerSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBanner) return;
+    try {
+      await updateBanner(editingBanner.id, {
+        title: editingBanner.title,
+        subtitle: editingBanner.subtitle,
+        discount: editingBanner.discount,
+        imageUrl: editingBanner.imageUrl,
+        buttonText: editingBanner.buttonText,
+        buttonLink: editingBanner.buttonLink,
+        startDate: editingBanner.startDate,
+        endDate: editingBanner.endDate,
+        position: editingBanner.position,
+        isActive: editingBanner.isActive,
+      });
+      setEditingBanner(null);
+    } catch {
+      alert('Failed to update banner.');
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (confirm('Are you sure you want to delete this offer banner?')) {
+      await deleteBanner(id);
     }
   };
 
@@ -282,7 +373,9 @@ export default function AdminPage() {
               { id: 'dashboard' as const, label: 'Overview', icon: '📊' },
               { id: 'products' as const, label: 'Catalog', icon: '🛍️' },
               { id: 'add' as const, label: 'Add Product', icon: '✨' },
+              { id: 'banners' as const, label: 'Offer Banners', icon: '📢', badge: banners.filter(b => b.isActive).length },
               { id: 'orders' as const, label: 'Orders', icon: '📦', badge: orders.filter(o => o.status === 'pending').length },
+              { id: 'customers' as const, label: 'Customers', icon: '👥' },
               { id: 'analytics' as const, label: 'Analytics', icon: '📈' },
             ].map((tab) => (
               <button
@@ -554,6 +647,7 @@ export default function AdminPage() {
                         <th className="p-4">Category</th>
                         <th className="p-4">Price</th>
                         <th className="p-4">Stock</th>
+                        <th className="p-4">Homepage Display</th>
                         <th className="p-4 text-right pr-6">Actions</th>
                       </tr>
                     </thead>
@@ -586,6 +680,28 @@ export default function AdminPage() {
                             >
                               {p.inStock ? 'In Stock' : 'Out of Stock'}
                             </button>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleToggleProductTrending(p)}
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition-all ${
+                                  p.isTrending ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-400'
+                                }`}
+                                title="Toggle Featured on Homepage"
+                              >
+                                {p.isTrending ? '★ Featured' : '+ Featured'}
+                              </button>
+                              <button
+                                onClick={() => handleToggleProductNew(p)}
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition-all ${
+                                  p.isNew ? 'bg-indigo-100 text-indigo-800 border border-indigo-300' : 'bg-slate-100 text-slate-400'
+                                }`}
+                                title="Toggle New Arrival on Homepage"
+                              >
+                                {p.isNew ? '✨ New' : '+ New'}
+                              </button>
+                            </div>
                           </td>
                           <td className="p-4 text-right pr-6 space-x-2">
                             <button
@@ -650,18 +766,18 @@ export default function AdminPage() {
                         type="text"
                         value={newProduct.subcategory}
                         onChange={(e) => setNewProduct({ ...newProduct, subcategory: e.target.value })}
-                        placeholder="e.g. Kurta, Saree, Sherwani"
+                        placeholder="e.g. Kurta / Saree / Lehenga"
                         className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-700 font-bold uppercase tracking-wider mb-1">Selling Price (₹) *</label>
+                      <label className="block text-slate-700 font-bold uppercase tracking-wider mb-1">Price (₹) *</label>
                       <input
                         type="number"
                         value={newProduct.price}
                         onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                        placeholder="2499"
+                        placeholder="1899"
                         className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500"
                         required
                       />
@@ -672,21 +788,31 @@ export default function AdminPage() {
                         type="number"
                         value={newProduct.originalPrice}
                         onChange={(e) => setNewProduct({ ...newProduct, originalPrice: e.target.value })}
-                        placeholder="3999"
+                        placeholder="2999"
                         className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-700 font-bold uppercase tracking-wider mb-1">Sizes (comma separated)</label>
+                      <label className="block text-slate-700 font-bold uppercase tracking-wider mb-1">Available Sizes (comma-separated)</label>
                       <input
                         type="text"
                         value={newProduct.sizes}
                         onChange={(e) => setNewProduct({ ...newProduct, sizes: e.target.value })}
-                        placeholder="S, M, L, XL"
+                        placeholder="S, M, L, XL, XXL"
                         className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500"
-                        required
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase tracking-wider mb-1">Available Colors (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={newProduct.colors}
+                      onChange={(e) => setNewProduct({ ...newProduct, colors: e.target.value })}
+                      placeholder="Navy Blue, Royal Black, Maroon"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500"
+                    />
                   </div>
 
                   <div>
@@ -948,6 +1074,124 @@ export default function AdminPage() {
                 </div>
                 <button type="submit" disabled={isEditSubmitting} className="w-full btn-primary py-3 rounded-2xl text-xs font-bold uppercase tracking-wider">
                   {isEditSubmitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* EDIT BANNER MODAL */}
+        {editingBanner && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md"
+            onClick={() => setEditingBanner(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-slate-900 text-sm uppercase">Edit Offer Banner</h3>
+                <button onClick={() => setEditingBanner(null)} className="text-slate-400 hover:text-slate-700">✕</button>
+              </div>
+
+              <form onSubmit={handleEditBannerSave} className="space-y-3 text-xs">
+                <div>
+                  <label className="block text-slate-700 font-bold uppercase mb-1">Banner Title</label>
+                  <input
+                    type="text"
+                    value={editingBanner.title}
+                    onChange={(e) => setEditingBanner({ ...editingBanner, title: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-bold uppercase mb-1">Subtitle</label>
+                  <input
+                    type="text"
+                    value={editingBanner.subtitle || ''}
+                    onChange={(e) => setEditingBanner({ ...editingBanner, subtitle: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Discount Tag</label>
+                    <input
+                      type="text"
+                      value={editingBanner.discount || ''}
+                      onChange={(e) => setEditingBanner({ ...editingBanner, discount: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Button Text</label>
+                    <input
+                      type="text"
+                      value={editingBanner.buttonText || ''}
+                      onChange={(e) => setEditingBanner({ ...editingBanner, buttonText: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-bold uppercase mb-1">Background Image URL</label>
+                  <input
+                    type="url"
+                    value={editingBanner.imageUrl || ''}
+                    onChange={(e) => setEditingBanner({ ...editingBanner, imageUrl: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-bold uppercase mb-1">Button Link</label>
+                  <input
+                    type="text"
+                    value={editingBanner.buttonLink || ''}
+                    onChange={(e) => setEditingBanner({ ...editingBanner, buttonLink: e.target.value })}
+                    className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      value={editingBanner.startDate || ''}
+                      onChange={(e) => setEditingBanner({ ...editingBanner, startDate: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">End Date</label>
+                    <input
+                      type="date"
+                      value={editingBanner.endDate || ''}
+                      onChange={(e) => setEditingBanner({ ...editingBanner, endDate: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                    />
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingBanner.isActive}
+                      onChange={(e) => setEditingBanner({ ...editingBanner, isActive: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    <span className="font-bold uppercase text-slate-700">Banner Active</span>
+                  </label>
+                </div>
+                <button type="submit" className="w-full btn-primary py-3 rounded-2xl text-xs font-bold uppercase tracking-wider">
+                  Update Offer Banner
                 </button>
               </form>
             </motion.div>

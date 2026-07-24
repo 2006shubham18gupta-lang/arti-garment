@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { Product } from '@/types';
-import { products as defaultProducts } from '@/data/products';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -70,8 +69,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Merge: admin-added products first, then default products
-  const allProducts = [...adminProducts, ...defaultProducts];
+  // Display ONLY products stored inside Firebase Firestore
+  const allProducts = adminProducts;
 
   const addProduct = useCallback(async (product: Product, imageUrl?: string) => {
     // Use provided imageUrl, or fall back to product's existing image, or default
@@ -160,7 +159,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   }, [allProducts]);
 
   const getProductsByCategory = useCallback((category: string): Product[] => {
-    return allProducts.filter(p => p.category === category);
+    if (!category) return [];
+    return allProducts.filter(p => (p.category || '').trim().toLowerCase() === category.trim().toLowerCase());
   }, [allProducts]);
 
   const getTrendingProducts = useCallback((): Product[] => {
@@ -172,13 +172,14 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   }, [allProducts]);
 
   const searchProducts = useCallback((searchQuery: string): Product[] => {
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return allProducts;
     return allProducts.filter(
       p =>
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.subcategory.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q)
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q) ||
+        (p.subcategory || '').toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q)
     );
   }, [allProducts]);
 

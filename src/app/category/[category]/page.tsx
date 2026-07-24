@@ -151,10 +151,10 @@ export default function CategoryPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-20">
-            <div className="text-5xl mb-4">🔍</div>
-            <h3 className="text-xl font-display font-semibold text-surface-700 mb-2">No products found</h3>
-            <p className="text-surface-500">Try adjusting your filters</p>
+          <div className="text-center py-20 px-4 rounded-3xl bg-slate-50 border border-slate-200">
+            <div className="text-5xl mb-4">🛍️</div>
+            <h3 className="text-2xl font-luxury font-bold text-slate-800 mb-2">No Products Available</h3>
+            <p className="text-slate-500 text-sm">There are currently no products available in this category.</p>
           </div>
         )}
       </div>
