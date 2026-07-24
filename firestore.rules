@@ -27,5 +27,11 @@ service cloud.firestore {
     match /user_carts/{userId} {
       allow read, write: if true;
     }
+
+    // Offer Banners — public read, admin write
+    match /offerBanners/{bannerId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

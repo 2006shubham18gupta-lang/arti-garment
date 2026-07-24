@@ -79,12 +79,15 @@ export interface OfferBanner {
   firestoreId?: string;
   title: string;
   subtitle?: string;
+  description?: string;
   discount?: string;
-  imageUrl?: string;
+  imageUrl: string;
+  mobileImageUrl?: string;
   buttonText?: string;
   buttonLink?: string;
   startDate?: string; // YYYY-MM-DD
   endDate?: string;   // YYYY-MM-DD
+  priority: number;
   position?: string; // 'homepage' | 'hero' | 'top' | 'middle'
   isActive: boolean;
   createdAt: string;

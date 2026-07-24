@@ -42,10 +42,11 @@ export default function AdminPage() {
 
   const { allProducts, addProduct, updateProduct, deleteProduct } = useProducts();
   const { orders, isLoading, fetchAllOrders, updateOrderStatus } = useOrders();
-  const { banners, addBanner, updateBanner, deleteBanner, toggleBannerStatus } = useBanners();
+  const { banners, addBanner, updateBanner, deleteBanner, toggleBannerStatus, uploadImageWithProgress, reorderBanner } = useBanners();
 
   const [newProduct, setNewProduct] = useState<NewProduct>(emptyProduct);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -55,21 +56,32 @@ export default function AdminPage() {
   const [editForm, setEditForm] = useState<NewProduct & { isTrending?: boolean; isNew?: boolean }>(emptyProduct);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
-  // Banner State
+  // Banner State — full production form
   const [newBanner, setNewBanner] = useState({
     title: '',
     subtitle: '',
-    discount: '40% OFF',
+    description: '',
+    discount: '',
     imageUrl: '',
+    mobileImageUrl: '',
     buttonText: 'Shop Now',
     buttonLink: '/category/women',
     startDate: '',
     endDate: '',
+    priority: 1,
     position: 'homepage',
     isActive: true,
   });
   const [isAddingBanner, setIsAddingBanner] = useState(false);
   const [editingBanner, setEditingBanner] = useState<OfferBannerType | null>(null);
+  const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
+  const [bannerMobileImageFile, setBannerMobileImageFile] = useState<File | null>(null);
+  const [editBannerImageFile, setEditBannerImageFile] = useState<File | null>(null);
+  const [editBannerMobileImageFile, setEditBannerMobileImageFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [bannerError, setBannerError] = useState('');
+  const [previewBanner, setPreviewBanner] = useState<OfferBannerType | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -114,6 +126,7 @@ export default function AdminPage() {
 
       await addProduct(product, newProduct.imageUrl || undefined);
       setNewProduct(emptyProduct);
+      setSuccessMessage('Product Added Successfully!');
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       setActiveTab('products');
@@ -204,54 +217,126 @@ export default function AdminPage() {
 
   const handleAddBanner = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBannerError('');
+    setIsUploadingBanner(true);
+    setUploadProgress(0);
     try {
-      await addBanner(newBanner);
-      setNewBanner({
-        title: '',
-        subtitle: '',
-        discount: '40% OFF',
-        imageUrl: '',
-        buttonText: 'Shop Now',
-        buttonLink: '/category/women',
-        startDate: '',
-        endDate: '',
-        position: 'homepage',
-        isActive: true,
+      let imageUrl = newBanner.imageUrl;
+      let mobileImageUrl = newBanner.mobileImageUrl;
+
+      // Upload desktop banner image to Firebase Storage
+      if (bannerImageFile) {
+        imageUrl = await uploadImageWithProgress(bannerImageFile, (p) => setUploadProgress(p));
+      }
+      // Upload mobile banner image to Firebase Storage
+      if (bannerMobileImageFile) {
+        mobileImageUrl = await uploadImageWithProgress(bannerMobileImageFile);
+      }
+
+      if (!imageUrl) {
+        setBannerError('Please provide a banner image (upload or URL).');
+        setIsUploadingBanner(false);
+        return;
+      }
+
+      await addBanner({
+        ...newBanner,
+        imageUrl,
+        mobileImageUrl,
+        priority: Number(newBanner.priority) || (banners.length + 1),
       });
+
+      // Reset form
+      setNewBanner({
+        title: '', subtitle: '', description: '', discount: '',
+        imageUrl: '', mobileImageUrl: '',
+        buttonText: 'Shop Now', buttonLink: '/category/women',
+        startDate: '', endDate: '', priority: banners.length + 2,
+        position: 'homepage', isActive: true,
+      });
+      setBannerImageFile(null);
+      setBannerMobileImageFile(null);
       setIsAddingBanner(false);
+      setSuccessMessage('Banner Created & Saved to Firestore!');
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
-    } catch {
-      alert('Failed to save offer banner.');
+    } catch (err) {
+      console.error('[Admin] Banner add failed:', err);
+      setBannerError('Failed to save offer banner. Check console for details.');
+    } finally {
+      setIsUploadingBanner(false);
+      setUploadProgress(0);
     }
   };
 
   const handleEditBannerSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingBanner) return;
+    setBannerError('');
+    setIsUploadingBanner(true);
+    setUploadProgress(0);
     try {
+      let imageUrl = editingBanner.imageUrl;
+      let mobileImageUrl = editingBanner.mobileImageUrl;
+
+      // Upload new desktop image if selected
+      if (editBannerImageFile) {
+        imageUrl = await uploadImageWithProgress(editBannerImageFile, (p) => setUploadProgress(p));
+      }
+      // Upload new mobile image if selected
+      if (editBannerMobileImageFile) {
+        mobileImageUrl = await uploadImageWithProgress(editBannerMobileImageFile);
+      }
+
       await updateBanner(editingBanner.id, {
         title: editingBanner.title,
         subtitle: editingBanner.subtitle,
+        description: editingBanner.description,
         discount: editingBanner.discount,
-        imageUrl: editingBanner.imageUrl,
+        imageUrl,
+        mobileImageUrl,
         buttonText: editingBanner.buttonText,
         buttonLink: editingBanner.buttonLink,
         startDate: editingBanner.startDate,
         endDate: editingBanner.endDate,
+        priority: Number(editingBanner.priority) || 1,
         position: editingBanner.position,
         isActive: editingBanner.isActive,
       });
+
       setEditingBanner(null);
-    } catch {
-      alert('Failed to update banner.');
+      setEditBannerImageFile(null);
+      setEditBannerMobileImageFile(null);
+      setSuccessMessage('Banner Updated Successfully!');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (err) {
+      console.error('[Admin] Banner edit failed:', err);
+      setBannerError('Failed to update banner.');
+    } finally {
+      setIsUploadingBanner(false);
+      setUploadProgress(0);
     }
   };
 
   const handleDeleteBanner = async (id: string) => {
-    if (confirm('Are you sure you want to delete this offer banner?')) {
-      await deleteBanner(id);
+    if (confirm('Delete this banner? Images will also be removed from Firebase Storage.')) {
+      try {
+        await deleteBanner(id);
+        setSuccessMessage('Banner Deleted.');
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } catch {
+        alert('Failed to delete banner.');
+      }
     }
+  };
+
+  const handleMoveBannerPriority = async (id: string, direction: 'up' | 'down') => {
+    const idx = banners.findIndex(b => b.id === id || b.firestoreId === id);
+    if (idx < 0) return;
+    const newPriority = direction === 'up' ? Math.max(1, (banners[idx].priority || 1) - 1) : (banners[idx].priority || 1) + 1;
+    await reorderBanner(id, newPriority);
   };
 
   // Metrics calculation
@@ -328,7 +413,7 @@ export default function AdminPage() {
             exit={{ opacity: 0, y: -50, x: '-50%' }}
             className="fixed top-6 left-1/2 z-[100] px-6 py-3 bg-emerald-600 text-white font-semibold text-xs uppercase tracking-wider rounded-2xl shadow-2xl flex items-center gap-2"
           >
-            <span>✨</span> Product Added Successfully!
+            <span>✨</span> {successMessage || 'Operation Successful!'}
           </motion.div>
         )}
       </AnimatePresence>
@@ -850,6 +935,217 @@ export default function AdminPage() {
             </motion.div>
           )}
 
+          {/* ═══════ TAB: OFFER BANNER MANAGEMENT (Production-Ready) ═══════ */}
+          {activeTab === 'banners' && (
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold font-luxury text-slate-900">Offer Banner Management</h2>
+                  <p className="text-xs text-slate-400">Create, schedule, and reorder homepage promotional banners • Firestore + Storage</p>
+                </div>
+                <button
+                  onClick={() => { setIsAddingBanner(!isAddingBanner); setBannerError(''); }}
+                  className="btn-primary py-3 px-6 rounded-2xl text-xs font-bold uppercase tracking-wider"
+                >
+                  {isAddingBanner ? '✕ Close Form' : '+ Create New Banner'}
+                </button>
+              </div>
+
+              {/* Error Alert */}
+              {bannerError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 font-semibold flex items-center justify-between">
+                  <span>⚠️ {bannerError}</span>
+                  <button onClick={() => setBannerError('')} className="text-rose-400 hover:text-rose-600">✕</button>
+                </div>
+              )}
+
+              {/* Upload Progress Bar */}
+              {isUploadingBanner && (
+                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-indigo-700">
+                    <span>📤 Uploading Banner Image to Firebase Storage...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-indigo-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-600 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                </div>
+              )}
+
+              {/* ── CREATE BANNER FORM ── */}
+              {isAddingBanner && (
+                <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm space-y-5">
+                  <h3 className="text-sm font-bold uppercase text-slate-900">Create New Offer Banner</h3>
+                  <form onSubmit={handleAddBanner} className="space-y-4 text-xs font-medium">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Banner Title *</label>
+                        <input type="text" value={newBanner.title} onChange={(e) => setNewBanner({ ...newBanner, title: e.target.value })} placeholder="e.g. Flat 40% Off Wedding Collection" className="w-full p-3 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" required />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Subtitle</label>
+                        <input type="text" value={newBanner.subtitle} onChange={(e) => setNewBanner({ ...newBanner, subtitle: e.target.value })} placeholder="e.g. Premium Kurtas, Sarees & Lehengas" className="w-full p-3 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Description</label>
+                        <textarea rows={2} value={newBanner.description} onChange={(e) => setNewBanner({ ...newBanner, description: e.target.value })} placeholder="Additional details about this offer..." className="w-full p-3 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500 resize-none" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Discount Tag</label>
+                        <input type="text" value={newBanner.discount} onChange={(e) => setNewBanner({ ...newBanner, discount: e.target.value })} placeholder="e.g. 40% OFF or BUY 1 GET 1" className="w-full p-3 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Priority (Order)</label>
+                        <input type="number" min="1" value={newBanner.priority} onChange={(e) => setNewBanner({ ...newBanner, priority: Number(e.target.value) })} className="w-full p-3 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" />
+                      </div>
+                    </div>
+
+                    {/* Image Uploads */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Desktop Banner Image *</label>
+                        <input type="file" accept="image/*" onChange={(e) => { setBannerImageFile(e.target.files?.[0] || null); if (e.target.files?.[0]) setNewBanner({...newBanner, imageUrl: ''}); }} className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-indigo-100 file:text-indigo-700 file:font-bold file:cursor-pointer" />
+                        {bannerImageFile && <p className="text-[10px] text-emerald-600 mt-1 font-bold">✓ Selected: {bannerImageFile.name}</p>}
+                        <p className="text-[10px] text-slate-400 mt-1">Or paste URL below:</p>
+                        <input type="url" value={newBanner.imageUrl} onChange={(e) => { setNewBanner({ ...newBanner, imageUrl: e.target.value }); setBannerImageFile(null); }} placeholder="https://images.unsplash.com/..." className="w-full p-2.5 mt-1 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Mobile Banner Image (Optional)</label>
+                        <input type="file" accept="image/*" onChange={(e) => setBannerMobileImageFile(e.target.files?.[0] || null)} className="w-full p-2.5 bg-slate-50 border rounded-xl text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-slate-200 file:text-slate-700 file:font-bold file:cursor-pointer" />
+                        {bannerMobileImageFile && <p className="text-[10px] text-emerald-600 mt-1 font-bold">✓ Selected: {bannerMobileImageFile.name}</p>}
+                        <p className="text-[10px] text-slate-400 mt-1">Or paste URL:</p>
+                        <input type="url" value={newBanner.mobileImageUrl} onChange={(e) => { setNewBanner({ ...newBanner, mobileImageUrl: e.target.value }); setBannerMobileImageFile(null); }} placeholder="https://..." className="w-full p-2.5 mt-1 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" />
+                      </div>
+                    </div>
+
+                    {/* CTA & Links */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Button Text</label>
+                        <input type="text" value={newBanner.buttonText} onChange={(e) => setNewBanner({ ...newBanner, buttonText: e.target.value })} placeholder="e.g. Shop Now" className="w-full p-3 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Button Link</label>
+                        <input type="text" value={newBanner.buttonLink} onChange={(e) => setNewBanner({ ...newBanner, buttonLink: e.target.value })} placeholder="/category/women" className="w-full p-3 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" />
+                      </div>
+                    </div>
+
+                    {/* Scheduling */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">Start Date (Schedule)</label>
+                        <input type="date" value={newBanner.startDate} onChange={(e) => setNewBanner({ ...newBanner, startDate: e.target.value })} className="w-full p-3 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold uppercase mb-1">End Date (Auto-Expire)</label>
+                        <input type="date" value={newBanner.endDate} onChange={(e) => setNewBanner({ ...newBanner, endDate: e.target.value })} className="w-full p-3 bg-slate-50 border rounded-xl focus:outline-none focus:border-indigo-500" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6 pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={newBanner.isActive} onChange={(e) => setNewBanner({ ...newBanner, isActive: e.target.checked })} className="w-4 h-4 text-indigo-600 rounded" />
+                        <span className="font-bold uppercase text-slate-700">Activate Immediately</span>
+                      </label>
+                    </div>
+
+                    <button type="submit" disabled={isUploadingBanner} className="w-full btn-primary py-3.5 rounded-2xl text-xs font-bold uppercase tracking-wider disabled:opacity-60">
+                      {isUploadingBanner ? `Uploading... ${uploadProgress}%` : 'Save Banner to Firestore'}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* ── EXISTING BANNERS LIST ── */}
+              {banners.length === 0 ? (
+                <div className="p-12 text-center bg-white rounded-3xl border border-slate-100">
+                  <div className="text-4xl mb-3">📢</div>
+                  <h3 className="text-base font-bold text-slate-900">No Offer Banners in Firestore</h3>
+                  <p className="text-slate-400 text-xs mt-1">Click &quot;+ Create New Banner&quot; to add your first promotional banner.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {banners.map((banner, idx) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const isExpired = banner.endDate ? banner.endDate < today : false;
+                    const isScheduled = banner.startDate ? banner.startDate > today : false;
+
+                    return (
+                      <div key={banner.firestoreId || banner.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div className="flex flex-col md:flex-row">
+                          {/* Banner Preview Thumbnail */}
+                          <div
+                            className="w-full md:w-72 min-h-[140px] relative flex-shrink-0 flex items-center justify-center text-white p-6"
+                            style={{
+                              background: banner.imageUrl
+                                ? `linear-gradient(rgba(15,23,42,0.6), rgba(15,23,42,0.85)), url(${banner.imageUrl}) center/cover no-repeat`
+                                : 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)',
+                            }}
+                          >
+                            <div className="text-center relative z-10">
+                              {banner.discount && <span className="text-amber-300 text-[10px] font-bold uppercase block mb-1">{banner.discount}</span>}
+                              <p className="font-luxury font-bold text-sm leading-snug">{banner.title}</p>
+                            </div>
+                          </div>
+
+                          {/* Banner Details & Actions */}
+                          <div className="flex-1 p-5 space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase bg-slate-100 text-slate-600">
+                                  Priority: {banner.priority || idx + 1}
+                                </span>
+                                {isExpired ? (
+                                  <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase bg-red-100 text-red-600">Expired</span>
+                                ) : isScheduled ? (
+                                  <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase bg-blue-100 text-blue-600">Scheduled</span>
+                                ) : banner.isActive ? (
+                                  <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase bg-emerald-100 text-emerald-600">Live</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase bg-slate-200 text-slate-500">Inactive</span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono">
+                                {banner.startDate && <span>From: {banner.startDate}</span>}
+                                {banner.endDate && <span className="ml-2">To: {banner.endDate}</span>}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="font-bold text-slate-900 text-sm">{banner.title}</p>
+                              {banner.subtitle && <p className="text-xs text-slate-500 mt-0.5">{banner.subtitle}</p>}
+                              {banner.description && <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{banner.description}</p>}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                              {/* Reorder Controls */}
+                              <button onClick={() => handleMoveBannerPriority(banner.id, 'up')} disabled={idx === 0} className="px-2 py-1 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 disabled:opacity-30 text-[10px] font-bold" title="Move Up">▲</button>
+                              <button onClick={() => handleMoveBannerPriority(banner.id, 'down')} disabled={idx === banners.length - 1} className="px-2 py-1 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 disabled:opacity-30 text-[10px] font-bold" title="Move Down">▼</button>
+
+                              <button onClick={() => toggleBannerStatus(banner.id, banner.isActive)} className={`px-3 py-1.5 rounded-xl font-bold text-[10px] uppercase transition-all ${banner.isActive ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}>
+                                {banner.isActive ? 'Disable' : 'Enable'}
+                              </button>
+                              <button onClick={() => setPreviewBanner(banner)} className="px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-xl font-bold text-[10px] transition-colors">
+                                👁 Preview
+                              </button>
+                              <button onClick={() => { setEditingBanner(banner); setEditBannerImageFile(null); setEditBannerMobileImageFile(null); setBannerError(''); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl font-bold text-[10px] transition-colors">
+                                Edit
+                              </button>
+                              <button onClick={() => handleDeleteBanner(banner.id)} className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl font-bold text-[10px] transition-colors">
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {/* TAB 4: ORDERS MANAGEMENT */}
           {activeTab === 'orders' && (
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -1080,7 +1376,7 @@ export default function AdminPage() {
           </motion.div>
         )}
 
-        {/* EDIT BANNER MODAL */}
+        {/* ═══ EDIT BANNER MODAL (Production) ═══ */}
         {editingBanner && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -1094,106 +1390,143 @@ export default function AdminPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-2xl space-y-4 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-slate-900 text-sm uppercase">Edit Offer Banner</h3>
-                <button onClick={() => setEditingBanner(null)} className="text-slate-400 hover:text-slate-700">✕</button>
+                <button onClick={() => setEditingBanner(null)} className="text-slate-400 hover:text-slate-700 text-lg">✕</button>
               </div>
 
+              {isUploadingBanner && (
+                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-1">
+                  <div className="flex justify-between text-xs font-bold text-indigo-700">
+                    <span>Uploading...</span><span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-600 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleEditBannerSave} className="space-y-3 text-xs">
-                <div>
-                  <label className="block text-slate-700 font-bold uppercase mb-1">Banner Title</label>
-                  <input
-                    type="text"
-                    value={editingBanner.title}
-                    onChange={(e) => setEditingBanner({ ...editingBanner, title: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border rounded-xl"
-                    required
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Banner Title *</label>
+                    <input type="text" value={editingBanner.title} onChange={(e) => setEditingBanner({ ...editingBanner, title: e.target.value })} className="w-full p-2.5 bg-slate-50 border rounded-xl" required />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Subtitle</label>
+                    <input type="text" value={editingBanner.subtitle || ''} onChange={(e) => setEditingBanner({ ...editingBanner, subtitle: e.target.value })} className="w-full p-2.5 bg-slate-50 border rounded-xl" />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-bold uppercase mb-1">Subtitle</label>
-                  <input
-                    type="text"
-                    value={editingBanner.subtitle || ''}
-                    onChange={(e) => setEditingBanner({ ...editingBanner, subtitle: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border rounded-xl"
-                  />
+                  <label className="block text-slate-700 font-bold uppercase mb-1">Description</label>
+                  <textarea rows={2} value={editingBanner.description || ''} onChange={(e) => setEditingBanner({ ...editingBanner, description: e.target.value })} className="w-full p-2.5 bg-slate-50 border rounded-xl resize-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-slate-700 font-bold uppercase mb-1">Discount Tag</label>
-                    <input
-                      type="text"
-                      value={editingBanner.discount || ''}
-                      onChange={(e) => setEditingBanner({ ...editingBanner, discount: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border rounded-xl"
-                    />
+                    <input type="text" value={editingBanner.discount || ''} onChange={(e) => setEditingBanner({ ...editingBanner, discount: e.target.value })} className="w-full p-2.5 bg-slate-50 border rounded-xl" />
                   </div>
                   <div>
-                    <label className="block text-slate-700 font-bold uppercase mb-1">Button Text</label>
-                    <input
-                      type="text"
-                      value={editingBanner.buttonText || ''}
-                      onChange={(e) => setEditingBanner({ ...editingBanner, buttonText: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border rounded-xl"
-                    />
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Priority</label>
+                    <input type="number" min="1" value={editingBanner.priority || 1} onChange={(e) => setEditingBanner({ ...editingBanner, priority: Number(e.target.value) })} className="w-full p-2.5 bg-slate-50 border rounded-xl" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-slate-700 font-bold uppercase mb-1">Background Image URL</label>
-                  <input
-                    type="url"
-                    value={editingBanner.imageUrl || ''}
-                    onChange={(e) => setEditingBanner({ ...editingBanner, imageUrl: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border rounded-xl"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Desktop Image</label>
+                    <input type="file" accept="image/*" onChange={(e) => setEditBannerImageFile(e.target.files?.[0] || null)} className="w-full p-2 bg-slate-50 border rounded-xl text-xs file:mr-2 file:py-0.5 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-indigo-100 file:text-indigo-700 file:font-bold file:cursor-pointer" />
+                    {editBannerImageFile && <p className="text-[10px] text-emerald-600 mt-1 font-bold">✓ New: {editBannerImageFile.name}</p>}
+                    {!editBannerImageFile && editingBanner.imageUrl && <p className="text-[10px] text-slate-400 mt-1 truncate">Current: {editingBanner.imageUrl.substring(0, 50)}...</p>}
+                    <input type="url" value={editingBanner.imageUrl || ''} onChange={(e) => { setEditingBanner({ ...editingBanner, imageUrl: e.target.value }); setEditBannerImageFile(null); }} placeholder="Or paste URL" className="w-full p-2 mt-1 bg-slate-50 border rounded-xl text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Mobile Image</label>
+                    <input type="file" accept="image/*" onChange={(e) => setEditBannerMobileImageFile(e.target.files?.[0] || null)} className="w-full p-2 bg-slate-50 border rounded-xl text-xs file:mr-2 file:py-0.5 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-slate-200 file:text-slate-700 file:font-bold file:cursor-pointer" />
+                    {editBannerMobileImageFile && <p className="text-[10px] text-emerald-600 mt-1 font-bold">✓ New: {editBannerMobileImageFile.name}</p>}
+                    <input type="url" value={editingBanner.mobileImageUrl || ''} onChange={(e) => { setEditingBanner({ ...editingBanner, mobileImageUrl: e.target.value }); setEditBannerMobileImageFile(null); }} placeholder="Or paste URL" className="w-full p-2 mt-1 bg-slate-50 border rounded-xl text-xs" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-slate-700 font-bold uppercase mb-1">Button Link</label>
-                  <input
-                    type="text"
-                    value={editingBanner.buttonLink || ''}
-                    onChange={(e) => setEditingBanner({ ...editingBanner, buttonLink: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border rounded-xl"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Button Text</label>
+                    <input type="text" value={editingBanner.buttonText || ''} onChange={(e) => setEditingBanner({ ...editingBanner, buttonText: e.target.value })} className="w-full p-2.5 bg-slate-50 border rounded-xl" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold uppercase mb-1">Button Link</label>
+                    <input type="text" value={editingBanner.buttonLink || ''} onChange={(e) => setEditingBanner({ ...editingBanner, buttonLink: e.target.value })} className="w-full p-2.5 bg-slate-50 border rounded-xl" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-slate-700 font-bold uppercase mb-1">Start Date</label>
-                    <input
-                      type="date"
-                      value={editingBanner.startDate || ''}
-                      onChange={(e) => setEditingBanner({ ...editingBanner, startDate: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border rounded-xl"
-                    />
+                    <input type="date" value={editingBanner.startDate || ''} onChange={(e) => setEditingBanner({ ...editingBanner, startDate: e.target.value })} className="w-full p-2.5 bg-slate-50 border rounded-xl" />
                   </div>
                   <div>
                     <label className="block text-slate-700 font-bold uppercase mb-1">End Date</label>
-                    <input
-                      type="date"
-                      value={editingBanner.endDate || ''}
-                      onChange={(e) => setEditingBanner({ ...editingBanner, endDate: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border rounded-xl"
-                    />
+                    <input type="date" value={editingBanner.endDate || ''} onChange={(e) => setEditingBanner({ ...editingBanner, endDate: e.target.value })} className="w-full p-2.5 bg-slate-50 border rounded-xl" />
                   </div>
                 </div>
-                <div className="pt-2">
+                <div className="pt-1">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editingBanner.isActive}
-                      onChange={(e) => setEditingBanner({ ...editingBanner, isActive: e.target.checked })}
-                      className="w-4 h-4 text-indigo-600 rounded"
-                    />
+                    <input type="checkbox" checked={editingBanner.isActive} onChange={(e) => setEditingBanner({ ...editingBanner, isActive: e.target.checked })} className="w-4 h-4 text-indigo-600 rounded" />
                     <span className="font-bold uppercase text-slate-700">Banner Active</span>
                   </label>
                 </div>
-                <button type="submit" className="w-full btn-primary py-3 rounded-2xl text-xs font-bold uppercase tracking-wider">
-                  Update Offer Banner
+                <button type="submit" disabled={isUploadingBanner} className="w-full btn-primary py-3 rounded-2xl text-xs font-bold uppercase tracking-wider disabled:opacity-60">
+                  {isUploadingBanner ? `Uploading... ${uploadProgress}%` : 'Update Offer Banner'}
                 </button>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ═══ BANNER PREVIEW MODAL ═══ */}
+        {previewBanner && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-lg"
+            onClick={() => setPreviewBanner(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-4xl space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-white text-sm font-bold uppercase tracking-wider">Banner Preview — Live Render</h3>
+                <button onClick={() => setPreviewBanner(null)} className="text-white/60 hover:text-white text-lg">✕</button>
+              </div>
+              <div
+                className="relative overflow-hidden rounded-3xl p-8 md:p-14 border border-white/10 shadow-2xl min-h-[240px] flex items-center"
+                style={{
+                  background: previewBanner.imageUrl
+                    ? `linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.9)), url(${previewBanner.imageUrl}) center/cover no-repeat`
+                    : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 70%, #6366f1 100%)',
+                }}
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+                <div className="relative z-10 w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+                  <div className="max-w-2xl space-y-3">
+                    {previewBanner.discount && (
+                      <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-amber-400/20 backdrop-blur-md border border-amber-400/40 rounded-full text-xs font-bold text-amber-300 uppercase tracking-wider">🎉 {previewBanner.discount}</span>
+                    )}
+                    <h3 className="text-3xl md:text-5xl font-luxury font-bold text-white tracking-tight leading-tight">{previewBanner.title}</h3>
+                    {previewBanner.subtitle && <p className="text-slate-200 text-sm md:text-base font-light">{previewBanner.subtitle}</p>}
+                    {previewBanner.description && <p className="text-slate-300 text-xs md:text-sm">{previewBanner.description}</p>}
+                  </div>
+                  <span className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-bold rounded-2xl text-xs uppercase tracking-wider shadow-xl cursor-default flex-shrink-0">
+                    {previewBanner.buttonText || 'Shop Now'}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                  </span>
+                </div>
+              </div>
+              <p className="text-center text-white/40 text-[10px] uppercase tracking-widest">This is how the banner will appear on the homepage</p>
             </motion.div>
           </motion.div>
         )}
@@ -1201,3 +1534,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
